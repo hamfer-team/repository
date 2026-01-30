@@ -1,0 +1,36 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <Description>Simple Repository</Description>
+    <Authors>Hamfer Team</Authors>
+    <Company>Hamfer</Company>
+    <Copyright>Copyright © Hamfer</Copyright>
+
+    <PackageId>Hamfer.Repository</PackageId>
+    <PackageTags>repository,orm,database,ado</PackageTags>
+    <PackageIcon>icon.png</PackageIcon>
+    <PackageProjectUrl>https://hamfer.team/</PackageProjectUrl>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <RootNamespace>Hamfer.Repository</RootNamespace>    
+    <Version>0.2.1</Version>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <None Include="icon.png" Pack="true" Visible="false" PackagePath="/" />
+    <None Include="README.md" Pack="true" Visible="false" PackagePath="/" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\kernel\src\kernel.csproj" />
+    <ProjectReference Include="..\..\letsVeirfy\src\letsVeirfy.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Data.SqlClient" Version="6.1.4" />
+  </ItemGroup>
+</Project>
