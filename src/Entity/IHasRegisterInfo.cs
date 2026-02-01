@@ -1,14 +1,13 @@
-﻿using Hamfer.Repository.data;
-using Hamfer.Repository.utils;
+﻿using Hamfer.Repository.Attributes;
 
-namespace Hamfer.Repository.models;
+namespace Hamfer.Repository.Entity;
 
 public interface IHasRegisterInfo
 {
   [RepositoryColumn(SqlColumnParam.Is_Not_Nullable)]
   [RepositoryColumn(SqlColumnParam.Set_FractionalSecondScale_int, "7")]
-  public DateTime RegisterTime { get; set; }
+  public DateTime registerTime { get; set; }
 
   [RepositoryColumn(SqlColumnParam.Is_Not_Nullable)]
-  public Guid RegisterantId { get; set; }
+  public Guid registerantId { get; set; }
 }

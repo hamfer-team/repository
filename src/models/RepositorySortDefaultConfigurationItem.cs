@@ -1,16 +1,17 @@
-﻿using Hamfer.Repository.data;
+﻿using Hamfer.Repository.Data;
+using Hamfer.Repository.Entity;
 
-namespace Hamfer.Repository.models;
+namespace Hamfer.Repository.Models;
 
 public class RepositorySortDefaultConfigurationItem : ISortConfigurationItem
 {
   public RepositorySortDefaultConfigurationItem()
   {
-      PropertyName = nameof(IRepositoryEntity<>.id);
-      SortOrder = SortOrderBy.Ascending;
+      propertyName = nameof(IRepositoryEntity<>.id);
+      sortOrder = SortOrderBy.Ascending;
   }
 
-  public string PropertyName { get; }
+  public string propertyName { get; }
 
-  public SortOrderBy SortOrder { get; }
+  public SortOrderBy sortOrder { get; }
 }

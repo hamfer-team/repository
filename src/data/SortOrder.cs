@@ -1,10 +1,10 @@
-﻿namespace Hamfer.Repository.data;
+﻿namespace Hamfer.Repository.Data;
 
 public enum SortOrderBy
 {
-  ASC = 0,
-  Ascending = ASC,
-  DESC = 1,
-  Descending = DESC,
+  Asc = 0,
+  Ascending = Asc,
+  Desc = 1,
+  Descending = Desc,
   Undefined = -1,
 }

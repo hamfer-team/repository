@@ -1,7 +1,6 @@
-﻿using Hamfer.Repository.data;
-using Hamfer.Repository.utils;
+﻿using Hamfer.Repository.Attributes;
 
-namespace Hamfer.Repository.models;
+namespace Hamfer.Repository.Entity;
 
 /// <summary>
 /// موجودیت ریپازیتوری: موجودیتی است که برای تعامل لایه‌های بالاتر با ریپازیتوری کاربرد دارد

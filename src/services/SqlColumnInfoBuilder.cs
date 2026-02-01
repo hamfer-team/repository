@@ -1,13 +1,13 @@
-﻿using Hamfer.Repository.data;
-using Hamfer.Repository.models;
-using Hamfer.Repository.models.Errors;
+﻿using Hamfer.Repository.Data;
+using Hamfer.Repository.Errors;
+using Hamfer.Repository.Models;
 using System.Data;
 
-namespace Hamfer.Repository.services;
+namespace Hamfer.Repository.Services;
 
 public class SqlColumnInfoBuilder
 {
-  public static readonly Dictionary<Type, MidDataType> simpleTypeHelper = new()
+  public static readonly Dictionary<Type, MidDataType> SimpleTypeHelper = new()
   {
     { typeof(ulong), MidDataType.Numeric20 },
     { typeof(long), MidDataType.BigInt },
@@ -27,7 +27,7 @@ public class SqlColumnInfoBuilder
     { typeof(DateTimeOffset), MidDataType.DateTimeOffset },
     { typeof(byte[]), MidDataType.Binary },
     { typeof(TimeSpan), MidDataType.Time },     //TODO: check
-    { typeof(Guid), MidDataType.UID }
+    { typeof(Guid), MidDataType.Uid }
   };
 
   private string _name;
@@ -52,25 +52,25 @@ public class SqlColumnInfoBuilder
     this._sqlDbTypeText = null;
   }
 
-  public SqlColumnInfoBuilder IsNullable()
+  public SqlColumnInfoBuilder isNullable()
   {
     this._isNullable = true;
     return this;
   }
 
-  public SqlColumnInfoBuilder IsNotNullable()
+  public SqlColumnInfoBuilder isNotNullable()
   {
     this._isNullable = false;
     return this;
   }
 
-  public SqlColumnInfoBuilder WithDefaultValue(dynamic defaultValue)
+  public SqlColumnInfoBuilder withDefaultValue(dynamic defaultValue)
   {
     this._defaultValue = defaultValue;
     return this;
   }
 
-  public SqlColumnInfoBuilder IsString(bool supprtsUnicode = true, bool variableLength = true, int storageSize = 30)
+  public SqlColumnInfoBuilder isString(bool supprtsUnicode = true, bool variableLength = true, int storageSize = 30)
   {
     if (storageSize < 1)
     {
@@ -102,7 +102,7 @@ public class SqlColumnInfoBuilder
     return this;
   }
 
-  public SqlColumnInfoBuilder IsBinary(bool variableLength = true, int storageSize = 30)
+  public SqlColumnInfoBuilder isBinary(bool variableLength = true, int storageSize = 30)
   {
     if (storageSize < 1 || storageSize > 8000)
     {
@@ -116,7 +116,7 @@ public class SqlColumnInfoBuilder
     return this;
   }
 
-  public SqlColumnInfoBuilder IsDecimal(int precision = 18, int scale = 0)
+  public SqlColumnInfoBuilder isDecimal(int precision = 18, int scale = 0)
   {
     if (precision < 1 || precision > 38)
     {
@@ -137,7 +137,7 @@ public class SqlColumnInfoBuilder
     return this;
   }
 
-  public SqlColumnInfoBuilder IsFloatingPoint(int mantissaBits = 53)
+  public SqlColumnInfoBuilder isFloatingPoint(int mantissaBits = 53)
   {
     if (mantissaBits < 1 || mantissaBits > 53)
     {
@@ -149,7 +149,7 @@ public class SqlColumnInfoBuilder
     return this;
   }
 
-  public SqlColumnInfoBuilder IsInteger(int storageSize = 4)
+  public SqlColumnInfoBuilder isInteger(int storageSize = 4)
   {
     if (storageSize < 1 || storageSize > 8)
     {
@@ -171,38 +171,38 @@ public class SqlColumnInfoBuilder
     return this;
   }
 
-  public SqlColumnInfoBuilder IsBoolean()
+  public SqlColumnInfoBuilder isBoolean()
   {
     _dbType = SqlDbType.Bit;
     return this;
   }
 
-  public SqlColumnInfoBuilder IsMoney(bool isSmall = false)
+  public SqlColumnInfoBuilder isMoney(bool isSmall = false)
   {
     _dbType = isSmall ? SqlDbType.SmallMoney : SqlDbType.Money;
     return this;
   }
 
-  public SqlColumnInfoBuilder IsDate()
+  public SqlColumnInfoBuilder isDate()
   {
     _dbType = SqlDbType.Date;
     return this;
   }
 
-  public SqlColumnInfoBuilder IsUID(bool automaticGeneration = false)
+  public SqlColumnInfoBuilder isUid(bool automaticGeneration = false)
   {
     _dbType = automaticGeneration ? SqlDbType.Timestamp : SqlDbType.UniqueIdentifier;
 
     return this;
   }
 
-  public SqlColumnInfoBuilder IsObject()
+  public SqlColumnInfoBuilder isObject()
   {
     _dbType = SqlDbType.Variant;
     return this;
   }
 
-  public SqlColumnInfoBuilder WithTime(int fractionalSecondScale = 3)
+  public SqlColumnInfoBuilder withTime(int fractionalSecondScale = 3)
   {
     // TODO: check
     if (_dbType.ToString().Contains("Date", StringComparison.InvariantCultureIgnoreCase))
@@ -245,13 +245,13 @@ public class SqlColumnInfoBuilder
     return this;
   }
 
-  public SqlColumnInfoBuilder WithTimeZone()
+  public SqlColumnInfoBuilder withTimeZone()
   {
     _dbType = SqlDbType.DateTimeOffset;
     return this;
   }
 
-  public SqlColumnInfoBuilder WithMaxSize()
+  public SqlColumnInfoBuilder withMaxSize()
   {
     var hadIdentity = _sqlDbTypeText?.IndexOf("IDENTITY") >= 0;
     _sqlDbTypeText = null;
@@ -330,13 +330,13 @@ public class SqlColumnInfoBuilder
     return this;
   }
 
-  public SqlColumnInfoBuilder WithDescription(string? description)
+  public SqlColumnInfoBuilder withDescription(string? description)
   {
     _description = description;
     return this;
   }
 
-  public SqlColumnInfoBuilder WithIdentity(int seed = 1, int increment = 1)
+  public SqlColumnInfoBuilder withIdentity(int seed = 1, int increment = 1)
   {
     _identitySeed = seed;
     _identityIncrement = increment;
@@ -345,22 +345,22 @@ public class SqlColumnInfoBuilder
     return this;
   }
 
-  public SqlColumnInfo Build()
+  public SqlColumnInfo build()
   {
     return new SqlColumnInfo
     {
-      Name = this._name,
-      DbType = this._dbType,
-      CharMaxLength = this._charMaxLength,
-      NumericPrecision = this._numericPrecision,
-      NumericScale = this._numericScale,
-      TimeScale = this._timeScale,
-      IsNullable = this._isNullable,
-      Default = this._defaultValue,
-      Description = this._description,
-      IdentitySeed = this._identitySeed,
-      IdentityIncrement = this._identityIncrement,
-      SqlDbTypeText = this._sqlDbTypeText ?? this._dbType.ToString(),
+      name = this._name,
+      dbType = this._dbType,
+      charMaxLength = this._charMaxLength,
+      numericPrecision = this._numericPrecision,
+      numericScale = this._numericScale,
+      timeScale = this._timeScale,
+      isNullable = this._isNullable,
+      defaultValue = this._defaultValue,
+      description = this._description,
+      identitySeed = this._identitySeed,
+      identityIncrement = this._identityIncrement,
+      sqlDbTypeText = this._sqlDbTypeText ?? this._dbType.ToString(),
     };
   }
 }

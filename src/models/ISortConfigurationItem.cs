@@ -1,9 +1,10 @@
-﻿using Hamfer.Repository.data;
+﻿using Hamfer.Repository.Data;
 
-namespace Hamfer.Repository.models;
+namespace Hamfer.Repository.Models;
 
 public interface ISortConfigurationItem
 {
-  string PropertyName { get; }
-  SortOrderBy SortOrder { get; }
+  string propertyName { get; }
+
+  SortOrderBy sortOrder { get; }
 }

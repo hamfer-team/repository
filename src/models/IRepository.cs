@@ -1,6 +1,7 @@
 ﻿using Hamfer.Kernel.Errors;
+using Hamfer.Repository.Entity;
 
-namespace Hamfer.Repository.models;
+namespace Hamfer.Repository.Models;
 
 public interface IRepository<TEntity>
   where TEntity : class, IRepositoryEntity<TEntity>
@@ -10,81 +11,81 @@ public interface IRepository<TEntity>
   /// </summary>
   /// <param name="entityId">شناسه‌ی یکتای موجودیت</param>
   /// <returns><typeparamref name="TEntity"/></returns>
-  IRepositoryEntity<TEntity> FindOne(Guid entityId);
+  IRepositoryEntity<TEntity> findOne(Guid entityId);
 
   /// <summary>
   /// جستجو و ارائه یک گزینه از پایگاه داده
   /// </summary>
   /// <param name="clause">عبارت جستجو</param>
   /// <returns><typeparamref name="TEntity"/></returns>
-  IRepositoryEntity<TEntity> FindOneBy(Func<IRepositoryEntity<TEntity>, bool> clause);
+  IRepositoryEntity<TEntity> findOneBy(Func<IRepositoryEntity<TEntity>, bool> clause);
 
   /// <summary>
   /// جستجو و ارائه فهرست نتایج جستجو از پایگاه داده
   /// </summary>
   /// <param name="config">تنظیمات جستجو، مرتب سازی و صفحه بندی نتایج</param>
   /// <returns><typeparamref name="TEntity[]"/></returns>
-  ICollection<IRepositoryEntity<TEntity>> FindManyBy(IRepositoryPaginationConfiguration<TEntity> config);
+  ICollection<IRepositoryEntity<TEntity>> findManyBy(IRepositoryPaginationConfiguration<TEntity> config);
 
   /// <summary>
   /// افزودن موجودیت به پایگاه داده
   /// </summary>
   /// <param name="entity">موجودیت جدید</param>
-  void Insert(IRepositoryEntity<TEntity> entity);
+  void insert(IRepositoryEntity<TEntity> entity);
 
   /// <summary>
   /// تلاش برای افزودن موجودیت به پایگاه داده
   /// </summary>
   /// <param name="entity">موجودیت</param>
   /// <returns><typeparamref name="Boolean"/></returns>
-  bool TryInsert(IRepositoryEntity<TEntity> entity, out RepositoryError error);
+  bool tryInsert(IRepositoryEntity<TEntity> entity, out RepositoryError error);
 
   /// <summary>
   /// ویرایش یک موجودیت پایگاه داده
   /// </summary>
   /// <param name="entity">موجودیت</param>
-  void Update(IRepositoryEntity<TEntity> entity);
+  void update(IRepositoryEntity<TEntity> entity);
 
   /// <summary>
   /// تلاش برای ویرایش موجودیت پایگاه داده
   /// </summary>
   /// <param name="entity">موجودیت</param>
   /// <returns><typeparamref name="Boolean"/></returns>
-  bool TryUpdate(IRepositoryEntity<TEntity> entity, out RepositoryError error);
+  bool tryUpdate(IRepositoryEntity<TEntity> entity, out RepositoryError error);
 
   /// <summary>
   /// افزودن موجودیت به پایگاه داده یا ویرایش آن در صورت وجود
   /// </summary>
   /// <param name="entity">موجودیت</param>
-  void Upsert(IRepositoryEntity<TEntity> entity);
+  void upsert(IRepositoryEntity<TEntity> entity);
 
   /// <summary>
   /// تلاش برای افزودن موجودیت به پایگاه داده یا ویرایش آن موجودیت در صورت وجود
   /// </summary>
   /// <param name="entity">موجودیت</param>
   /// <returns><typeparamref name="Boolean"/></returns>
-  bool TryUpsert(IRepositoryEntity<TEntity> entity, out RepositoryError error);
+  bool tryUpsert(IRepositoryEntity<TEntity> entity, out RepositoryError error);
 
   /// <summary>
   /// حذف موجودیت از پایگاه داده
   /// </summary>
   /// <param name="entityId">شناسه‌ی یکتای موجودیت</param>
-  void Delete(Guid entityId);
+  void delete(Guid entityId);
 
   /// <summary>
   /// تلاش برای حذف موجودیت از پایگاه داده
   /// </summary>
   /// <param name="entityId">شناسه موجودیت</param>
   /// <returns><typeparamref name="Boolean"/></returns>
-  bool TryDelete(Guid entityId, out RepositoryError error);
+  bool tryDelete(Guid entityId, out RepositoryError error);
 
   /// <summary>
   /// اعمال تغییرات بر روی پایگاه داده
   /// </summary>
-  void Commit();
+  void commit();
 
   /// <summary>
   /// لغو تغییرات
   /// </summary>
-  void RollBack();
+  void rollBack();
 }

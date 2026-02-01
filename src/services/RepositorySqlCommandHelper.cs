@@ -1,9 +1,9 @@
 ﻿using Microsoft.Data.SqlClient;
 using System.Reflection;
 using System.Text;
-using Hamfer.Repository.models;
+using Hamfer.Repository.Entity;
 
-namespace Hamfer.Repository.services;
+namespace Hamfer.Repository.Services;
 
 public class RepositorySqlCommandHelper<TEntity>
   where TEntity : class, IRepositoryEntity<TEntity>
@@ -19,7 +19,7 @@ public class RepositorySqlCommandHelper<TEntity>
   /// For INSERT string
   /// </summary>
   /// <returns></returns>
-  public string GenerateFieldValuesPattern()
+  public string generateFieldValuesPattern()
   {
     var sb = new StringBuilder();
 
@@ -44,7 +44,7 @@ public class RepositorySqlCommandHelper<TEntity>
   /// </summary>
   /// <param name="exceptions"></param>
   /// <returns></returns>
-  public string GenerateFieldAndValuesPattern(List<string>? exceptions = null)
+  public string generateFieldAndValuesPattern(List<string>? exceptions = null)
   {
     var sb = new StringBuilder();
 
@@ -69,7 +69,7 @@ public class RepositorySqlCommandHelper<TEntity>
     return sb.ToString();
   }
 
-  public void ApplyFieldParameters(SqlCommand command, TEntity? entity)
+  public void applyFieldParameters(SqlCommand command, TEntity? entity)
   {
     foreach (var prop in _properties)
     {

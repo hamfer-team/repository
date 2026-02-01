@@ -1,15 +1,15 @@
 ﻿using Hamfer.Verification.Models;
 
-namespace Hamfer.Repository.models;
+namespace Hamfer.Repository.Models;
 
 public class SqlRelationInfo : VerifiableModelBase<SqlRelationInfo>
 {
-  public string? ParentPropertyName { get; set; }
-  public bool ParentHasMany { get; set; }
-  public bool ParentHasOne => !ParentHasMany;
-  public Type? ChildType { get; set; }
+  public string? parentPropertyName { get; set; }
+  public bool parentHasMany { get; set; }
+  public bool parentHasOne => !parentHasMany;
+  public Type? childType { get; set; }
 
-  public override void Verify()
+  public override void verify()
   {
     //TODO
   }

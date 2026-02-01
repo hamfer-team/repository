@@ -1,30 +1,30 @@
 ﻿using Hamfer.Verification.Models;
 using Hamfer.Verification.Services;
 
-namespace Hamfer.Repository.models;
+namespace Hamfer.Repository.Models;
 
 public class SqlTableInfo: VerifiableModelBase<SqlTableInfo>
 {
-  public string? Schema { get; set; }
-  public string? Name { get; set; }
-  public List<SqlColumnInfo>? Columns { get; set; }
-  public string? PrimaryKey { get; set; }
-  public string[]? UniqueConstraints { get; set; }
-  public string? Description { get; set; }
-  public List<SqlRelationInfo>? Relations { get; set; }
+  public string? schema { get; set; }
+  public string? name { get; set; }
+  public List<SqlColumnInfo>? columns { get; set; }
+  public string? primaryKey { get; set; }
+  public string[]? uniqueConstraints { get; set; }
+  public string? description { get; set; }
+  public List<SqlRelationInfo>? relations { get; set; }
 
-  public override void Verify()
+  public override void verify()
   {
     LetsVerify.On(this)
-      .For(this.Schema, "اسکیمای جدول").AssertNotNullOrEmpty().AssertMatch(@"^[A-Za-z][A-Za-z0-9]*$")
-      .For(this.Name, "نام جدول").AssertNotNullOrEmpty().AssertMaxLength(128).AssertMatch(@"^[A-Za-z][A-Za-z0-9]*$")
-      .For(this.Columns, "ستون‌ها").AssertNotNullOrEmpty().VerifyAllItems()
-      .For(this.PrimaryKey, "کلید اصلی").AssertNotNullOrEmpty()
-        .AssertCsvRow(out string[]? pkParts)
-          .For(pkParts, "فهرست ستون‌های کلید اصلی").AssertNotNullOrEmpty().AssertIsMemeberOf(this.Columns?.Select(c => c.Name))
-      .For(this.UniqueConstraints, "ستون‌های یکتا").AssertForEachBy(item =>
-        item.AssertCsvRow(out string[]? ucParts)
-          .For(ucParts, "فهرست ستون‌های یکتا").AssertNotNullOrEmpty().AssertIsMemeberOf(this.Columns?.Select(c => c.Name))
+      .Assert(this.schema, "اسکیمای جدول").NotNullOrEmpty().Match(@"^[A-Za-z][A-Za-z0-9]*$")
+      .Assert(this.name, "نام جدول").NotNullOrEmpty().LengthMax(128).Match(@"^[A-Za-z][A-Za-z0-9]*$")
+      .Assert(this.columns, "ستون‌ها").NotNullOrEmpty().VerifyAll()
+      .Assert(this.primaryKey, "کلید اصلی").NotNullOrEmpty()
+        .CsvRow(out string[]? pkParts)
+          .Assert(pkParts, "فهرست ستون‌های کلید اصلی").NotNullOrEmpty().IsMemeberOf(this.columns?.Select(c => c.name))
+      .Assert(this.uniqueConstraints, "ستون‌های یکتا").ForEachBy(item =>
+        item.CsvRow(out string[]? ucParts)
+          .Assert(ucParts, "فهرست ستون‌های یکتا").NotNullOrEmpty().IsMemeberOf(this.columns?.Select(c => c.name))
       )
       .ThenThrowErrors();
   }

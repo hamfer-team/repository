@@ -1,4 +1,4 @@
-﻿namespace Hamfer.Repository.data;
+﻿namespace Hamfer.Repository.Data;
 
 public enum MidDataType
 {
@@ -17,5 +17,5 @@ public enum MidDataType
   String1,        // string(1), char, Char
   Time,           // time, TimeSpan
   TinyInt,        // tinyint, byte, Byte
-  UID             // uniqueidentifier, GUID
+  Uid             // uniqueidentifier, GUID
 }

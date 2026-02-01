@@ -1,10 +1,12 @@
-﻿namespace Hamfer.Repository.models;
+﻿using Hamfer.Repository.Entity;
+
+namespace Hamfer.Repository.Models;
 
 public class RepositoryPaginationDefaultConfiguration<TEntity> : IRepositoryPaginationConfiguration<TEntity>
   where TEntity : class, IRepositoryEntity<TEntity>
 {
-  public const int PageSizeDefault = 10;
-  public const int PageNoDefault = 1;
+  public const int PAGE_SIZE_DEFAULT = 10;
+  public const int PAGE_NO_DEFAULT = 1;
 
   public RepositoryPaginationDefaultConfiguration()
   {
@@ -13,17 +15,17 @@ public class RepositoryPaginationDefaultConfiguration<TEntity> : IRepositoryPagi
       return true;
     }
 
-    WhereClause = defaultWhereClause;
-    Sort = [new RepositorySortDefaultConfigurationItem()];
-    PageSize = PageSizeDefault;
-    PageNo = PageNoDefault;
+    where = defaultWhereClause;
+    sort = [new RepositorySortDefaultConfigurationItem()];
+    pageSize = PAGE_SIZE_DEFAULT;
+    pageNo = PAGE_NO_DEFAULT;
   }
 
-  public int PageSize { get; set; }
+  public int pageSize { get; set; }
 
-  public int PageNo { get; set; }
+  public int pageNo { get; set; }
 
-  public Func<TEntity, bool>? WhereClause { get; set; }
+  public Func<TEntity, bool>? where { get; set; }
 
-  public ISortConfigurationItem[]? Sort { get; set; }
+  public ISortConfigurationItem[]? sort { get; set; }
 }

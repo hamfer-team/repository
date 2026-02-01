@@ -1,6 +1,6 @@
 ﻿using Microsoft.Data.SqlClient;
 
-namespace Hamfer.Repository.utils;
+namespace Hamfer.Repository.Utils;
 
 public static class SqlDataReaderExtensions
 {

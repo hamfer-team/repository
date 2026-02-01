@@ -2,32 +2,31 @@
 using Hamfer.Verification.Models;
 using Hamfer.Verification.Services;
 
-namespace Hamfer.Repository.models;
+namespace Hamfer.Repository.Models;
 
 public class SqlColumnInfo : VerifiableModelBase<SqlColumnInfo>
 {
-  public string? Name { get; set; }
+  public string? name { get; set; }
   //public int OrdinalPosition { get; set; }
-  public dynamic? Default { get; set; }
-  public bool IsNullable { get; set; }
-  public SqlDbType? DbType { get; set; }
-  public int? CharMaxLength { get; set; }
-  public int? NumericPrecision { get; set; }
-  public int? NumericScale { get; set; }
-  public int? TimeScale { get; set; }
+  public dynamic? defaultValue { get; set; }
+  public bool isNullable { get; set; }
+  public SqlDbType? dbType { get; set; }
+  public int? charMaxLength { get; set; }
+  public int? numericPrecision { get; set; }
+  public int? numericScale { get; set; }
+  public int? timeScale { get; set; }
   //public string CharSetName { get; set; }
   //public string CollationName { get; set; }
-  public string? Description { get; set; }
-  public int? IdentitySeed { get; set; }
-  public int? IdentityIncrement { get; set; }
+  public string? description { get; set; }
+  public int? identitySeed { get; set; }
+  public int? identityIncrement { get; set; }
 
-  public string? SqlDbTypeText { get; set; }
+  public string? sqlDbTypeText { get; set; }
 
-  public override void Verify()
+  public override void verify()
   {
     LetsVerify.On(this)
-      .For(this.Name, "نام ستون").AssertNotNullOrEmpty().AssertMaxLength(128).AssertMatch(@"^[A-Za-z][A-Za-z0-9]*$")
-      //.For(this.CharMaxLength, "حداکثر اندازه").WhenIsNotNull(). TODO
+      .Assert(this.name, "نام ستون").NotNullOrEmpty().LengthMax(128).Match(@"^[A-Za-z][A-Za-z0-9]*$")
       .ThenThrowErrors();
   }
 }

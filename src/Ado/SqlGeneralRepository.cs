@@ -1,27 +1,27 @@
 ﻿using Microsoft.Data.SqlClient;
 
-namespace Hamfer.Repository.models;
+namespace Hamfer.Repository.Ado;
 
-public class AdoSqlGeneralRepository<TResult>
+public class SqlGeneralRepository<TResult>
   where TResult: class
 {
   protected SqlConnection _connection { get; }
-  protected AdoSqlQueryBase<TResult> _sqlQuery { get; }
+  protected SqlQueryBase<TResult> _sqlQuery { get; }
 
-  public AdoSqlGeneralRepository(string connectionString, AdoSqlQueryBase<TResult> sqlQuery)
+  public SqlGeneralRepository(string connectionString, SqlQueryBase<TResult> sqlQuery)
   {
     _connection = new SqlConnection(connectionString);
     _sqlQuery = sqlQuery;
 }
 
-  public IEnumerable<TResult> ExecuteQuery(params object[] inputParams)
+  public IEnumerable<TResult> executeQuery(params object[] inputParams)
   {
     if (_connection.State != System.Data.ConnectionState.Open)
     {
       _connection.Open();
     }
 
-    var sqlCommand = new SqlCommand(_sqlQuery.Query, _connection);
+    var sqlCommand = new SqlCommand(_sqlQuery.query, _connection);
     for (int i = 0; i < inputParams.Length; i++)
     {
       var inp = inputParams[i];
@@ -35,7 +35,7 @@ public class AdoSqlGeneralRepository<TResult>
     {
       while (reader.Read())
       {
-        var record = _sqlQuery.ReadWrapper(reader);
+        var record = _sqlQuery.readWrapper(reader);
         result.Add(record);
       }
     }

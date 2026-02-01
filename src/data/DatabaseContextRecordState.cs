@@ -1,4 +1,4 @@
-﻿namespace Hamfer.Repository.data;
+﻿namespace Hamfer.Repository.Data;
 
 public enum DatabaseContextRecordState
 {

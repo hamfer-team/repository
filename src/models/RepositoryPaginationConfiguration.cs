@@ -1,13 +1,15 @@
-﻿namespace Hamfer.Repository.models;
+﻿using Hamfer.Repository.Entity;
+
+namespace Hamfer.Repository.Models;
 
 public class RepositoryPaginationConfiguration<TEntity> : IRepositoryPaginationConfiguration<TEntity>
   where TEntity : class, IRepositoryEntity<TEntity>
 {
-  public int PageSize { get; set; }
+  public int pageSize { get; set; }
 
-  public int PageNo { get; set; }
+  public int pageNo { get; set; }
 
-  public Func<TEntity, bool>? WhereClause { get; set; }
+  public Func<TEntity, bool>? where { get; set; }
 
-  public ISortConfigurationItem[]? Sort { get; set; }
+  public ISortConfigurationItem[]? sort { get; set; }
 }

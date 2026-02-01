@@ -1,13 +1,14 @@
 ﻿using Hamfer.Kernel.Errors;
 using Hamfer.Kernel.Utils;
-using Hamfer.Repository.data;
-using Hamfer.Repository.models;
-using Hamfer.Repository.utils;
+using Hamfer.Repository.Attributes;
+using Hamfer.Repository.Data;
+using Hamfer.Repository.Entity;
+using Hamfer.Repository.Models;
 using Microsoft.Data.SqlClient;
 using System.Reflection;
 using System.Text;
 
-namespace Hamfer.Repository.services;
+namespace Hamfer.Repository.Services;
 
 public static class SqlDatabaseCommandHelper
 {
@@ -28,25 +29,25 @@ public static class SqlDatabaseCommandHelper
     var atts = type.GetCustomAttributes<RepositoryTableAttribute>(true);
     foreach (var att in atts)
     {
-      switch (att.Param)
+      switch (att.param)
       {
         case SqlTableParam.Set_Name:
-          tableName = att.Value;
+          tableName = att.value;
           break;
         case SqlTableParam.Set_Schema:
-          schema = att.Value;
+          schema = att.value;
           break;
         case SqlTableParam.Is_Ignored:
-          ValueTypeHelper.TryParse(att.Value, out ignored);
+          ValueTypeHelper.TryParse(att.value, out ignored);
           break;
         case SqlTableParam.Set_Description:
-          description = att.Value;
+          description = att.value;
           break;
         case SqlTableParam.Set_PrimaryKey_commaSeparatedString:
-          tablePrimarykey = att.Value;
+          tablePrimarykey = att.value;
           break;
         case SqlTableParam.With_UniqueConstraints_commaSeparatedString:
-          unique = att.Value;
+          unique = att.value;
           uniques.Add(unique);
           break;
         default:
@@ -97,68 +98,68 @@ public static class SqlDatabaseCommandHelper
       var patts = prop.GetCustomAttributes<RepositoryColumnAttribute>(true);
       foreach (var patt in patts)
       {
-          switch (patt.Param)
+          switch (patt.param)
           {
               case SqlColumnParam.With_FixedLength:
-                  ValueTypeHelper.TryParse(patt.Value, out fixedLength);
+                  ValueTypeHelper.TryParse(patt.value, out fixedLength);
                   break;
               case SqlColumnParam.Set_StorageSize_int:
-                  ValueTypeHelper.TryParse(patt.Value, out storageSize);
+                  ValueTypeHelper.TryParse(patt.value, out storageSize);
                   break;
               case SqlColumnParam.Is_DateOnly:
-                  ValueTypeHelper.TryParse(patt.Value, out dateOnly);
+                  ValueTypeHelper.TryParse(patt.value, out dateOnly);
                   break;
               case SqlColumnParam.Set_FractionalSecondScale_int:
-                  ValueTypeHelper.TryParse(patt.Value, out fractionalSecondScale);
+                  ValueTypeHelper.TryParse(patt.value, out fractionalSecondScale);
                   break;
               case SqlColumnParam.Set_Precision_int:
-                  ValueTypeHelper.TryParse(patt.Value, out precision);
+                  ValueTypeHelper.TryParse(patt.value, out precision);
                   break;
               case SqlColumnParam.Set_Scale_int:
-                  ValueTypeHelper.TryParse(patt.Value, out scale);
+                  ValueTypeHelper.TryParse(patt.value, out scale);
                   break;
               case SqlColumnParam.With_SupprtsUnicode:
-                  ValueTypeHelper.TryParse(patt.Value, out supprtsUnicode);
+                  ValueTypeHelper.TryParse(patt.value, out supprtsUnicode);
                   break;
               case SqlColumnParam.With_AutomaticGeneration:
-                  ValueTypeHelper.TryParse(patt.Value, out automaticGeneration);
+                  ValueTypeHelper.TryParse(patt.value, out automaticGeneration);
                   break;
               case SqlColumnParam.Is_Money:
-                  ValueTypeHelper.TryParse(patt.Value, out isMoney);
+                  ValueTypeHelper.TryParse(patt.value, out isMoney);
                   break;
               case SqlColumnParam.Is_SmallMoney:
-                  ValueTypeHelper.TryParse(patt.Value, out isSmallMoney);
+                  ValueTypeHelper.TryParse(patt.value, out isSmallMoney);
                   break;
               case SqlColumnParam.With_MaxSize:
-                  ValueTypeHelper.TryParse(patt.Value, out maxSize);
+                  ValueTypeHelper.TryParse(patt.value, out maxSize);
                   break;
               case SqlColumnParam.Is_Identity_With_Seed_int:
-                  ValueTypeHelper.TryParse(patt.Value, out identitySeed);
+                  ValueTypeHelper.TryParse(patt.value, out identitySeed);
                   break;
               case SqlColumnParam.Is_Identity_With_Increment_int:
-                  ValueTypeHelper.TryParse(patt.Value, out identityIncrement);
+                  ValueTypeHelper.TryParse(patt.value, out identityIncrement);
                   break;
               case SqlColumnParam.Is_PrimaryKey:
-                  ValueTypeHelper.TryParse(patt.Value, out isPrimaryKey);
+                  ValueTypeHelper.TryParse(patt.value, out isPrimaryKey);
                   break;
               case SqlColumnParam.Is_Nullable:
-                  ValueTypeHelper.TryParse(patt.Value, out isNullable);
+                  ValueTypeHelper.TryParse(patt.value, out isNullable);
                   break;
               case SqlColumnParam.Is_Not_Nullable:
-                  ValueTypeHelper.TryParse(patt.Value, out isNotNullable);
+                  ValueTypeHelper.TryParse(patt.value, out isNotNullable);
                   break;
               case SqlColumnParam.Is_Ignored:
-                  ValueTypeHelper.TryParse(patt.Value, out ignored);
+                  ValueTypeHelper.TryParse(patt.value, out ignored);
                   break;
               case SqlColumnParam.With_DefaultValue_string:
-                  defaultValue = patt.Value;
+                  defaultValue = patt.value;
                   //ToDo : change to property type
                   break;
               case SqlColumnParam.Set_Name:
-                  colName = patt.Value;
+                  colName = patt.value;
                   break;
               case SqlColumnParam.Set_Description:
-                  colDesc = patt.Value;
+                  colDesc = patt.value;
                   break;
               default:
                   break;
@@ -177,90 +178,90 @@ public static class SqlDatabaseCommandHelper
 
       var columnName = RemoveEscapeCharacters(colName ?? prop.Name);
       var cibuilder = new SqlColumnInfoBuilder(columnName);
-      if (SqlColumnInfoBuilder.simpleTypeHelper.TryGetValue(ptype, out MidDataType midType))
+      if (SqlColumnInfoBuilder.SimpleTypeHelper.TryGetValue(ptype, out MidDataType midType))
       {
         var isIdentitySuit = false;
 
         switch (midType)
         {
           case MidDataType.BigInt:
-            cibuilder.IsInteger(8);
-            cibuilder.IsNotNullable();
+            cibuilder.isInteger(8);
+            cibuilder.isNotNullable();
             isIdentitySuit = true;
             break;
           case MidDataType.Binary:
-            cibuilder.IsBinary(fixedLength ?? true, storageSize ?? 30);
-            cibuilder.IsNullable();
+            cibuilder.isBinary(fixedLength ?? true, storageSize ?? 30);
+            cibuilder.isNullable();
             break;
           case MidDataType.Bit:
-            cibuilder.IsBoolean();
-            cibuilder.IsNotNullable();
+            cibuilder.isBoolean();
+            cibuilder.isNotNullable();
             break;
           case MidDataType.DateTime:
-            cibuilder.IsDate();
+            cibuilder.isDate();
             if (!(dateOnly ?? false))
             {
-              cibuilder.WithTime(fractionalSecondScale ?? 3);
+              cibuilder.withTime(fractionalSecondScale ?? 3);
             }
-            cibuilder.IsNotNullable();
+            cibuilder.isNotNullable();
             break;
           case MidDataType.DateTimeOffset:
-            cibuilder.IsDate();
-            cibuilder.WithTime(fractionalSecondScale ?? 7);
-            cibuilder.WithTimeZone();
-            cibuilder.IsNotNullable();
+            cibuilder.isDate();
+            cibuilder.withTime(fractionalSecondScale ?? 7);
+            cibuilder.withTimeZone();
+            cibuilder.isNotNullable();
             break;
           case MidDataType.Decimal:
-            cibuilder.IsDecimal(precision ?? 19, scale ?? 5);
-            cibuilder.IsNotNullable();
+            cibuilder.isDecimal(precision ?? 19, scale ?? 5);
+            cibuilder.isNotNullable();
             break;
           case MidDataType.Float:
-            cibuilder.IsFloatingPoint();
-            cibuilder.IsNotNullable();
+            cibuilder.isFloatingPoint();
+            cibuilder.isNotNullable();
             isIdentitySuit = true;
             break;
           case MidDataType.Int:
-            cibuilder.IsInteger(4);
-            cibuilder.IsNotNullable();
+            cibuilder.isInteger(4);
+            cibuilder.isNotNullable();
             isIdentitySuit = true;
             break;
           case MidDataType.Numeric20:
-            cibuilder.IsDecimal(20, 0);
-            cibuilder.IsNotNullable();
+            cibuilder.isDecimal(20, 0);
+            cibuilder.isNotNullable();
             isIdentitySuit = true;
             break;
           case MidDataType.Real:
-            cibuilder.IsFloatingPoint(24);
-            cibuilder.IsNotNullable();
+            cibuilder.isFloatingPoint(24);
+            cibuilder.isNotNullable();
             isIdentitySuit = true;
             break;
           case MidDataType.SmallInt:
-            cibuilder.IsInteger(2);
-            cibuilder.IsNotNullable();
+            cibuilder.isInteger(2);
+            cibuilder.isNotNullable();
             isIdentitySuit = true;
             break;
           case MidDataType.String:
-            cibuilder.IsString(supprtsUnicode ?? true, fixedLength ?? true, storageSize ?? 30);
-            cibuilder.IsNullable();
+            cibuilder.isString(supprtsUnicode ?? true, fixedLength ?? true, storageSize ?? 30);
+            cibuilder.isNullable();
             break;
           case MidDataType.String1:
-            cibuilder.IsString(supprtsUnicode ?? true, false, 1);
-            cibuilder.IsNotNullable();
+            cibuilder.isString(supprtsUnicode ?? true, false, 1);
+            cibuilder.isNotNullable();
             break;
           case MidDataType.Time:
-            cibuilder.WithTime(fractionalSecondScale ?? 7);
-            cibuilder.IsNotNullable();
+            cibuilder.withTime(fractionalSecondScale ?? 7);
+            cibuilder.isNotNullable();
             break;
           case MidDataType.TinyInt:
-            cibuilder.IsInteger(1);
-            cibuilder.IsNotNullable();
+            cibuilder.isInteger(1);
+            cibuilder.isNotNullable();
             break;
-          case MidDataType.UID:
-            cibuilder.IsUID(automaticGeneration ?? false);
+          case MidDataType.Uid:
+            cibuilder.isUid(automaticGeneration ?? false);
             if (automaticGeneration ?? false) {
-              cibuilder.IsNotNullable();
+              cibuilder.isNotNullable();
             } else {
-              cibuilder.IsNullable();
+              cibuilder.isNullable();
             }
             break;
           default:
@@ -270,24 +271,24 @@ public static class SqlDatabaseCommandHelper
         // Supporint Money Types
         if (isSmallMoney ?? false)
         {
-          cibuilder.IsMoney(true);
+          cibuilder.isMoney(true);
         }
 
         if (isMoney ?? false)
         {
-          cibuilder.IsMoney();
+          cibuilder.isMoney();
         }
 
         // Applying Max-Size
         if (maxSize ?? false)
         {
-          cibuilder.WithMaxSize();
+          cibuilder.withMaxSize();
         }
 
         // Applying IDENTITY only on suit types
         if (isIdentitySuit)
         {
-          cibuilder.WithIdentity(identitySeed ?? 1, identityIncrement ?? 1);
+          cibuilder.withIdentity(identitySeed ?? 1, identityIncrement ?? 1);
         }
       }
       else
@@ -305,23 +306,23 @@ public static class SqlDatabaseCommandHelper
       // IS_NULLABLE
       if (isNullable ?? false)
       {
-        cibuilder.IsNullable();
+        cibuilder.isNullable();
       }
       if (isNotNullable ?? false)
       {
-        cibuilder.IsNotNullable();
+        cibuilder.isNotNullable();
       }
 
       // IS_PRIMERYKEY
       if (isPrimaryKey ?? false)
       {
-        cibuilder.IsNotNullable(); // Ooops! I should ignore some settings ;)
+        cibuilder.isNotNullable(); // Ooops! I should ignore some settings ;)
         primarykey = primarykey.AppendWith(columnName);
       }
 
-      cibuilder.WithDescription(colDesc);
+      cibuilder.withDescription(colDesc);
 
-      var column = cibuilder.Build();
+      var column = cibuilder.build();
       columns.Add(column);
     }
 
@@ -333,12 +334,12 @@ public static class SqlDatabaseCommandHelper
 
     var result = new SqlTableInfo
     {
-        Schema = RemoveEscapeCharacters(schema ?? "dbo"),
-        Name = RemoveEscapeCharacters(tableName ?? type.Name),
-        Columns = columns,
-        PrimaryKey = primarykey ?? tablePrimarykey,
-        Description = description,
-        UniqueConstraints = [.. uniques]
+        schema = RemoveEscapeCharacters(schema ?? "dbo"),
+        name = RemoveEscapeCharacters(tableName ?? type.Name),
+        columns = columns,
+        primaryKey = primarykey ?? tablePrimarykey,
+        description = description,
+        uniqueConstraints = [.. uniques]
     };
 
     return result;
@@ -348,19 +349,19 @@ public static class SqlDatabaseCommandHelper
   {
     // https://docs.microsoft.com/en-us/sql/t-sql/statements/create-table-transact-sql?view=sql-server-ver15
 
-    sti.Verify();
+    sti.verify();
 
     var palinColumnText = ", [{0}] {1} {2}";
     var sb = new StringBuilder();
-    foreach (var sci in sti.Columns!)
+    foreach (var sci in sti.columns!)
     {
-      sb.Append(string.Format(palinColumnText, sci.Name, sci.SqlDbTypeText, sci.IsNullable ? "NULL" : "NOT NULL"));
+      sb.Append(string.Format(palinColumnText, sci.name, sci.sqlDbTypeText, sci.isNullable ? "NULL" : "NOT NULL"));
     }
 
     var columnsString = sb.ToString();
 
     var plainCreateCommand = "CREATE TABLE [{0}].[{1}] ( [Id] UNIQUEIDENTIFIER CONSTRAINT Guid_Default DEFAULT NEWSEQUENTIALID() {2} CONSTRAINT [{0}_{1}_Id_PK] PRIMARY KEY ([Id])); ";
-    var sqlcmd = string.Format(plainCreateCommand, sti.Schema, sti.Name, columnsString);
+    var sqlcmd = string.Format(plainCreateCommand, sti.schema, sti.name, columnsString);
 
     return new SqlCommand(sqlcmd);
   }

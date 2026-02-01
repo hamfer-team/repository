@@ -1,4 +1,4 @@
-﻿namespace Hamfer.Repository.data;
+﻿namespace Hamfer.Repository.Attributes;
 
 public enum SqlColumnParam
 {

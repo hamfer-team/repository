@@ -1,9 +1,10 @@
 ﻿using Hamfer.Kernel.Utils;
-using Hamfer.Repository.models;
+using Hamfer.Repository.Entity;
+using Hamfer.Repository.Models;
 using Microsoft.Data.SqlClient;
 using System.Reflection;
 
-namespace Hamfer.Repository.services;
+namespace Hamfer.Repository.Services;
 
 public static class AdoSqlDatabaseContextMigrator
 {
