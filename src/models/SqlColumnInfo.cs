@@ -23,9 +23,9 @@ public class SqlColumnInfo : VerifiableModelBase<SqlColumnInfo>
 
   public string? sqlDbTypeText { get; set; }
 
-  public override void verify()
+  public override void verify(string? name = null)
   {
-    LetsVerify.On(this)
+    LetsVerify.On(this, name)
       .Assert(this.name, "نام ستون").NotNullOrEmpty().LengthMax(128).Match(@"^[A-Za-z][A-Za-z0-9]*$")
       .ThenThrowErrors();
   }

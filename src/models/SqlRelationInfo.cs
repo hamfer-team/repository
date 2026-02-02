@@ -9,7 +9,7 @@ public class SqlRelationInfo : VerifiableModelBase<SqlRelationInfo>
   public bool parentHasOne => !parentHasMany;
   public Type? childType { get; set; }
 
-  public override void verify()
+  public override void verify(string? name = null)
   {
     //TODO
   }

@@ -13,9 +13,9 @@ public class SqlTableInfo: VerifiableModelBase<SqlTableInfo>
   public string? description { get; set; }
   public List<SqlRelationInfo>? relations { get; set; }
 
-  public override void verify()
+  public override void verify(string? name = null)
   {
-    LetsVerify.On(this)
+    LetsVerify.On(this, name)
       .Assert(this.schema, "اسکیمای جدول").NotNullOrEmpty().Match(@"^[A-Za-z][A-Za-z0-9]*$")
       .Assert(this.name, "نام جدول").NotNullOrEmpty().LengthMax(128).Match(@"^[A-Za-z][A-Za-z0-9]*$")
       .Assert(this.columns, "ستون‌ها").NotNullOrEmpty().VerifyAll()

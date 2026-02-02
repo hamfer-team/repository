@@ -4,6 +4,7 @@ using Hamfer.Repository.Attributes;
 using Hamfer.Repository.Data;
 using Hamfer.Repository.Entity;
 using Hamfer.Repository.Models;
+using Hamfer.Verification.Errors;
 using Microsoft.Data.SqlClient;
 using System.Reflection;
 using System.Text;
@@ -345,11 +346,23 @@ public static class SqlDatabaseCommandHelper
     return result;
   }
 
-  public static SqlCommand GenerateTableCommandBy(SqlTableInfo sti)
+  public static SqlCommand GenerateTableCommandBy(SqlTableInfo sti, string? name = null)
   {
     // https://docs.microsoft.com/en-us/sql/t-sql/statements/create-table-transact-sql?view=sql-server-ver15
 
-    sti.verify();
+    try
+    {
+      sti.verify(name);
+    }
+    catch (LetsVerifyAggregateError err)
+    {
+      err.writeMessages();
+      throw;
+    }
+    catch (LetsVerifyError)
+    {
+      throw;
+    }
 
     var palinColumnText = ", [{0}] {1} {2}";
     var sb = new StringBuilder();
