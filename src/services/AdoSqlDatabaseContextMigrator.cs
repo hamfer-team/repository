@@ -1,17 +1,61 @@
-﻿using Hamfer.Kernel.Utils;
+﻿using Hamfer.Kernel.Errors;
+using Hamfer.Kernel.Utils;
+using Hamfer.Repository.Ado;
 using Hamfer.Repository.Entity;
+using Hamfer.Repository.Errors;
 using Hamfer.Repository.Models;
 using Microsoft.Data.SqlClient;
+using System.Diagnostics;
 using System.Reflection;
 
 namespace Hamfer.Repository.Services;
 
-public static class AdoSqlDatabaseContextMigrator
+public sealed class AdoSqlDatabaseContextMigrator
 {
-  public static void MigrateCurrentEntitiesFrom(Assembly assembly)
+  readonly string connectionString;
+  readonly SqlConnection serverConnection;
+  readonly bool serverIsValid;
+  SqlGeneralRepository repository;
+  bool dbIsValid;
+
+  public AdoSqlDatabaseContextMigrator(string connectionString)
   {
-    var types = assembly.GetTypes();
-    var commands = new List<SqlCommand>();
+    this.connectionString = connectionString;
+    this.repository = new SqlGeneralRepository(connectionString);
+    this.serverIsValid = this.repository.validateServer(out this.serverConnection);
+    this.dbIsValid = this.repository.validate();
+  }
+
+  public async Task createDatabase(bool removeOldDb = false)
+  {
+    if (!this.serverIsValid)
+    {
+      throw new RepositoryConnectionError(this.serverConnection.ConnectionString, "در زمان اتصال به سرور پایگاه داده خطایی رخ داده است!");
+    }
+
+    if (this.serverConnection.State != System.Data.ConnectionState.Open)
+    {
+      await this.serverConnection.OpenAsync();
+    }
+
+    if (!this.dbIsValid || removeOldDb)
+    {
+      string dbName = new SqlConnectionStringBuilder(){ ConnectionString = this.connectionString }.InitialCatalog;
+      SqlCommand command = this.serverConnection.CreateCommand();
+      command.CommandText = $"CREATE DATABASE {dbName};";
+      await command.ExecuteNonQueryAsync();
+      Console.WriteLine("➕✅ Database created successfully!");
+    }
+  }
+
+  public async Task migrate(Assembly assembly, string? title = null, string? path = null, bool removeOldDb = false)
+  {
+    // Create Database if not exists
+    await this.createDatabase(removeOldDb);
+
+    // Gather Create Table commands from assembly
+    Type[] types = assembly.GetTypes();
+    List<SqlCommand> commands = [];
     foreach (var type in types)
     {
       if (ReferenceTypeHelper.IsDerivedOfGenericInterface(type, typeof(IRepositoryEntity<>)))
@@ -22,21 +66,50 @@ public static class AdoSqlDatabaseContextMigrator
           continue;
         }
 
-        SqlCommand sqlCmd = SqlDatabaseCommandHelper.GenerateTableCommandBy(tiEntity);
+        SqlCommand sqlCmd = SqlDatabaseCommandHelper.GenerateTableCommandBy(tiEntity, type.Name);
         commands.Add(sqlCmd);
       }
+    }
+    Console.WriteLine($"COMMANDS: {commands.Count}");
+
+    // Create migrations folder
+    string assemblyCodePath = Path.GetDirectoryName(assembly.Location) ?? "";
+    string pathSep = Path.DirectorySeparatorChar.ToString();
+    int binIx = assemblyCodePath.IndexOf($@"{pathSep}bin{pathSep}");
+    if (binIx > 0)
+    {
+      assemblyCodePath = assemblyCodePath[..binIx];
+    }
+
+    string migrationsPath = Path.Join(assemblyCodePath, path ?? "migrations");
+    if (!Path.Exists(migrationsPath))
+    {
+      Directory.CreateDirectory(migrationsPath);
+    }
+
+    // Create migration file
+    string fileName = $"{DateTime.Now.ToPersianString("{0:0000}{1:00}{2:00}{3:00}{4:00}{5:00}{6:0000}")}_{title ?? "migration.sql"}";
+    string file = Path.Join(migrationsPath, fileName);
+    // using StreamWriter sw = new(file, true);
+    foreach (SqlCommand command in commands)
+    {
+      // sw.Write(command.CommandText);
     }
 
     //TODO start a sql transaction to create or alter tables
   }
 
-  public static void MigrateEntitiesFromAssembly<TEntity>()
-    where TEntity: class, IRepositoryEntity<TEntity>
+  public async Task migrate(string? title = null, string? path = null, bool removeOldDb = false)
   {
-    var assembly = Assembly.GetAssembly(typeof(TEntity));
+    Assembly? assembly = Assembly.GetEntryAssembly();
+    
     if (assembly != null)
     {
-      MigrateCurrentEntitiesFrom(assembly);
+      await this.migrate(assembly, title, path, removeOldDb);
+    }
+    else
+    {
+      throw new RepositoryError("در فراخوانی اسمبلی درخواست‌کننده مشکلی وجود دارد!");
     }
   }
 }
