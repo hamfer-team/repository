@@ -14,19 +14,12 @@ public class SqlGeneralRepository
     _connection = new SqlConnection(connectionString);
   }
 
-  public bool validate(bool withoutCatalog = false)
+  public bool validate()
   {
     if (_connection.State != System.Data.ConnectionState.Open)
     {
       try
       {
-        if (withoutCatalog) {
-          SqlConnectionStringBuilder scsb = new() { ConnectionString = _connection.ConnectionString };
-          
-          scsb.InitialCatalog = "master";
-          this._connection = new SqlConnection(scsb.ToString());
-        }
-
         _connection.Open();
       }
       catch (Exception ex)
@@ -37,6 +30,31 @@ public class SqlGeneralRepository
     }
 
     Console.WriteLine("🔗✅ Database validated successfully!");
+    return true;
+  }
+
+  public bool validateServer(out SqlConnection connection)
+  {
+    connection = _connection;
+    if (_connection.State != System.Data.ConnectionState.Open)
+    {
+      try
+      {
+        SqlConnectionStringBuilder scsb = new() { ConnectionString = _connection.ConnectionString };
+          
+        scsb.InitialCatalog = "master";
+        connection = new (scsb.ToString());
+
+        connection.Open();
+      }
+      catch (Exception ex)
+      {
+        Console.WriteLine(ex.ToString());
+        return false;
+      }
+    }
+
+    Console.WriteLine("🔗✅ Database Server validated successfully!");
     return true;
   }
 
