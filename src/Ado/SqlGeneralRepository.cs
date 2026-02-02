@@ -1,27 +1,46 @@
-﻿using Microsoft.Data.SqlClient;
+﻿using Hamfer.Verification.Services;
+using Microsoft.Data.SqlClient;
 
 namespace Hamfer.Repository.Ado;
 
-public class SqlGeneralRepository<TResult>
-  where TResult: class
+public class SqlGeneralRepository
 {
   protected SqlConnection _connection { get; }
-  protected SqlQueryBase<TResult> _sqlQuery { get; }
 
-  public SqlGeneralRepository(string connectionString, SqlQueryBase<TResult> sqlQuery)
+  public SqlGeneralRepository(string? connectionString)
   {
-    _connection = new SqlConnection(connectionString);
-    _sqlQuery = sqlQuery;
-}
+    LetsVerify.On().Assert(connectionString, "متن ارتباط با پایگاه داده").NotNullOrEmpty().ThenThrowErrors();
 
-  public IEnumerable<TResult> executeQuery(params object[] inputParams)
+    _connection = new SqlConnection(connectionString);
+  }
+
+  public bool validate()
+  {
+    if (_connection.State != System.Data.ConnectionState.Open)
+    {
+      try
+      {
+        _connection.Open();
+      }
+      catch (Exception ex)
+      {
+        Console.WriteLine(ex.ToString());
+        return false;
+      }
+    }
+
+    Console.WriteLine("🔗✅ Database validated successfully!");
+    return true;
+  }
+
+  public IEnumerable<TResult> query<TResult>(SqlQueryBase<TResult> sqlQuery, params object[] inputParams) where TResult: class
   {
     if (_connection.State != System.Data.ConnectionState.Open)
     {
       _connection.Open();
     }
 
-    var sqlCommand = new SqlCommand(_sqlQuery.query, _connection);
+    var sqlCommand = new SqlCommand(sqlQuery.query, _connection);
     for (int i = 0; i < inputParams.Length; i++)
     {
       var inp = inputParams[i];
@@ -35,7 +54,7 @@ public class SqlGeneralRepository<TResult>
     {
       while (reader.Read())
       {
-        var record = _sqlQuery.readWrapper(reader);
+        var record = sqlQuery.readWrapper(reader);
         result.Add(record);
       }
     }
