@@ -5,7 +5,7 @@ namespace Hamfer.Repository.Ado;
 
 public class SqlGeneralRepository
 {
-  protected SqlConnection _connection { get; }
+  protected SqlConnection _connection { get; private set; }
 
   public SqlGeneralRepository(string? connectionString)
   {
@@ -14,12 +14,19 @@ public class SqlGeneralRepository
     _connection = new SqlConnection(connectionString);
   }
 
-  public bool validate()
+  public bool validate(bool withoutCatalog = false)
   {
     if (_connection.State != System.Data.ConnectionState.Open)
     {
       try
       {
+        if (withoutCatalog) {
+          SqlConnectionStringBuilder scsb = new() { ConnectionString = _connection.ConnectionString };
+          
+          scsb.InitialCatalog = "master";
+          this._connection = new SqlConnection(scsb.ToString());
+        }
+
         _connection.Open();
       }
       catch (Exception ex)
