@@ -1,4 +1,6 @@
-﻿using Hamfer.Kernel.Errors;
+﻿using System.Reflection;
+using System.Text.RegularExpressions;
+using Hamfer.Kernel.Errors;
 using Hamfer.Kernel.Utils;
 using Hamfer.Repository.Attributes;
 using Hamfer.Repository.Data;
@@ -6,8 +8,6 @@ using Hamfer.Repository.Entity;
 using Hamfer.Repository.Models;
 using Hamfer.Verification.Errors;
 using Microsoft.Data.SqlClient;
-using System.Reflection;
-using System.Text.RegularExpressions;
 
 namespace Hamfer.Repository.Services;
 
@@ -396,8 +396,11 @@ public static class SqlDatabaseCommandHelper
     string primaryKeysString = sti.primaryKeys!.Select(spk => $"[{RemoveEscapeCharacters(spk)}] ASC").Aggregate((a, b) => $"{a}, {b}");
     string primaryKeyString = $", CONSTRAINT [PK_{schema}.{table}] PRIMARY KEY CLUSTERED ({primaryKeysString} ) WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON) ON [PRIMARY]";
 
-    string uniqueConstraintsString = sti.uniqueConstraints!.Select(suc => $"[{RemoveEscapeCharacters(suc)}] ASC").Aggregate((a, b) => $"{a}, {b}");
-    string uniqueConstraintString = $", CONSTRAINT [IX_{schema}.{table}] UNIQUE NONCLUSTERED ({uniqueConstraintsString} ) WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON) ON [PRIMARY]";
+    string uniqueConstraintString = "";
+    if (sti.uniqueConstraints != null) {
+      string uniqueConstraintsString = sti.uniqueConstraints.Select(suc => $"[{RemoveEscapeCharacters(suc)}] ASC").Aggregate((a, b) => $"{a}, {b}");
+      uniqueConstraintString = $", CONSTRAINT [IX_{schema}.{table}] UNIQUE NONCLUSTERED ({uniqueConstraintsString} ) WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON) ON [PRIMARY]";
+    }
 
     SqlCommand createCommand = new($"CREATE TABLE [{tableFullName}] ({columnsString}{primaryKeyString}{uniqueConstraintString}) ON [PRIMARY]");
   

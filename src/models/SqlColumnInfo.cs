@@ -9,7 +9,7 @@ public class SqlColumnInfo : VerifiableModelBase<SqlColumnInfo>
   public string? name { get; set; }
   //public int OrdinalPosition { get; set; }
   
-  public dynamic? defaultValue { get; set; }
+  public string? defaultValue { get; set; }
   public bool isNullable { get; set; }
   public SqlDbType? dbType { get; set; }
   public int? charMaxLength { get; set; }
