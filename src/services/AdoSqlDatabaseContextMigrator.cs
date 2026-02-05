@@ -55,7 +55,10 @@ public sealed class AdoSqlDatabaseContextMigrator
 
     // Gather Create Table commands from assembly
     Type[] types = assembly.GetTypes();
-    List<SqlCommand> commands = [];
+    List<SqlCommand> createTableCommands = [];
+    List<SqlCommand> relationCommands = [];
+    List<SqlCommand> defaultValueCommands = [];
+    List<SqlCommand> extendedCommands = [];
     foreach (var type in types)
     {
       if (ReferenceTypeHelper.IsDerivedOfGenericInterface(type, typeof(IRepositoryEntity<>)))
@@ -66,11 +69,17 @@ public sealed class AdoSqlDatabaseContextMigrator
           continue;
         }
 
-        SqlCommand sqlCmd = SqlDatabaseCommandHelper.GenerateTableCommandBy(tiEntity, type.Name);
-        commands.Add(sqlCmd);
+        TableCommand? tableCmds = SqlDatabaseCommandHelper.GenerateTableCommandsBy(tiEntity, type.Name);
+        if (tableCmds != null)
+        {
+          createTableCommands.Add(tableCmds.create);
+          if (tableCmds.relations != null) relationCommands.AddRange(tableCmds.relations);
+          if (tableCmds.defaulValues != null) defaultValueCommands.AddRange(tableCmds.defaulValues);
+          if (tableCmds.description != null) extendedCommands.Add(tableCmds.description);
+          if (tableCmds.columnDescriptions != null) extendedCommands.AddRange(tableCmds.columnDescriptions);
+        }
       }
     }
-    Console.WriteLine($"COMMANDS: {commands.Count}");
 
     // Create migrations folder
     string assemblyCodePath = Path.GetDirectoryName(assembly.Location) ?? "";
@@ -91,7 +100,7 @@ public sealed class AdoSqlDatabaseContextMigrator
     string fileName = $"{DateTime.Now.ToPersianString("{0:0000}{1:00}{2:00}{3:00}{4:00}{5:00}{6:0000}")}_{title ?? "migration.sql"}";
     string file = Path.Join(migrationsPath, fileName);
     // using StreamWriter sw = new(file, true);
-    foreach (SqlCommand command in commands)
+    foreach (SqlCommand command in createTableCommands)
     {
       // sw.Write(command.CommandText);
     }

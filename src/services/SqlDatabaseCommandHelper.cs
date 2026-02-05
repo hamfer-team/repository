@@ -343,7 +343,7 @@ public static class SqlDatabaseCommandHelper
     return result;
   }
 
-  public static SqlCommand[] GenerateTableCommandsBy(SqlTableInfo sti, string? name = null)
+  public static TableCommand? GenerateTableCommandsBy(SqlTableInfo sti, string? name = null)
   {
     // https://docs.microsoft.com/en-us/sql/t-sql/statements/create-table-transact-sql?view=sql-server-ver15
 
@@ -390,22 +390,33 @@ public static class SqlDatabaseCommandHelper
     string uniqueConstraintString = $", CONSTRAINT [IX_{schema}.{table}] UNIQUE NONCLUSTERED ({uniqueConstraintsString} ) WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON) ON [PRIMARY]";
 
     SqlCommand createCommand = new($"CREATE TABLE [{tableFullName}] ({columnsString}{primaryKeyString}{uniqueConstraintString}) ON [PRIMARY]");
-
-    SqlCommand descriptionCommand = new($"EXEC sys.sp_addextendedproperty @name=N'Description', @value=N'{sti.description}', @level0type=N'SCHEMA',@level0name=N'{schema}', @level1type=N'TABLE',@level1name=N'{table}'");
+  
+    SqlCommand? descriptionCommand = sti.description != null 
+      ? new($"EXEC sys.sp_addextendedproperty @name=N'Description', @value=N'{sti.description}', @level0type=N'SCHEMA',@level0name=N'{schema}', @level1type=N'TABLE',@level1name=N'{table}'")
+      : null;
 
     // TODO: add relations
 
-    return [ 
-      createCommand,
-      // relationCommands
-      ..defaultValueCommands,
-      descriptionCommand,
-      ..columnDescriptionCommands
-    ];
+    return new TableCommand { 
+      create = createCommand,
+      //relations = relationCommands,
+      defaulValues = defaultValueCommands.Count > 0 ? [.. defaultValueCommands] : null,
+      description = descriptionCommand,
+      columnDescriptions = columnDescriptionCommands.Count > 0 ? columnDescriptionCommands?.ToArray() : null,
+    };
   }
 
   public static readonly SqlCommand[] PreparingCommands = [ new SqlCommand("SET ANSI_NULLS ON"), new SqlCommand("SET QUOTED_IDENTIFIER ON") ];
 
   private static string RemoveEscapeCharacters(string text)
       => text.Replace("'", "").Replace("[", "").Replace("]", "");
+}
+
+public sealed class TableCommand
+{
+  public required SqlCommand create { get; set; }
+  public SqlCommand[]? relations { get; set; }
+  public SqlCommand[]? defaulValues { get; set; }
+  public SqlCommand? description { get; set; }
+  public SqlCommand[]? columnDescriptions { get; set; }
 }
