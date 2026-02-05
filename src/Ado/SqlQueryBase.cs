@@ -1,6 +1,6 @@
-﻿using Microsoft.Data.SqlClient;
-using System.Text;
+﻿using System.Text;
 using System.Text.RegularExpressions;
+using Microsoft.Data.SqlClient;
 
 namespace Hamfer.Repository.Ado;
 

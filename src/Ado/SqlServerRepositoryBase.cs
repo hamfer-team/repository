@@ -1,7 +1,7 @@
-﻿using Microsoft.Data.SqlClient;
-using Hamfer.Kernel.Errors;
+﻿using Hamfer.Kernel.Errors;
 using Hamfer.Repository.Entity;
 using Hamfer.Repository.Models;
+using Microsoft.Data.SqlClient;
 
 namespace Hamfer.Repository.Ado;
 

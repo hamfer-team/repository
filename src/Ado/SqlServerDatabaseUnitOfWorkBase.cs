@@ -1,5 +1,4 @@
 ﻿using System.Data;
-using Microsoft.Data.SqlClient;
 using Hamfer.Kernel.Errors;
 using Hamfer.Kernel.Utils;
 using Hamfer.Repository.Data;
@@ -7,6 +6,7 @@ using Hamfer.Repository.Duow;
 using Hamfer.Repository.Entity;
 using Hamfer.Repository.Models;
 using Hamfer.Repository.Services;
+using Microsoft.Data.SqlClient;
 
 namespace Hamfer.Repository.Ado;
 

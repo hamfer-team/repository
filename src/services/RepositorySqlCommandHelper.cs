@@ -1,7 +1,7 @@
-﻿using Microsoft.Data.SqlClient;
-using System.Reflection;
+﻿using System.Reflection;
 using System.Text;
 using Hamfer.Repository.Entity;
+using Microsoft.Data.SqlClient;
 
 namespace Hamfer.Repository.Services;
 
@@ -79,4 +79,4 @@ public class RepositorySqlCommandHelper<TEntity>
       command.Parameters.AddWithValue(name, value);
     }
   }
-}
+  }
