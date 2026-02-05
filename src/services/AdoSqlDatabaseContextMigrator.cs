@@ -98,13 +98,37 @@ public sealed class AdoSqlDatabaseContextMigrator
     // Create migration file
     string fileName = $"{DateTime.Now.ToPersianString("{0:0000}{1:00}{2:00}{3:00}{4:00}{5:00}{6:0000}")}_{title ?? "migration.sql"}";
     string file = Path.Join(migrationsPath, fileName);
-    // using StreamWriter sw = new(file, true);
+    using StreamWriter sw = new(file, true);
+
+    sw.WriteLine("BEGIN TRY");
+    sw.WriteLine("BEGIN TRAN;");
+    foreach (SqlCommand command in TableCommand.PreparingCommands)
+    {
+      sw.WriteLine();
+      sw.Write(command.CommandText);
+      sw.WriteLine(";");
+    }
+
     foreach (SqlCommand command in createTableCommands)
     {
-      // sw.Write(command.CommandText);
+      sw.WriteLine();
+      sw.WriteLine($"-- Create-Table command");
+      sw.Write(command.CommandText);
+      sw.WriteLine(";");
     }
 
     //TODO start a sql transaction to create or alter tables
+
+    sw.WriteLine();
+    sw.WriteLine("COMMIT TRAN;");
+    sw.WriteLine("END TRY");
+    sw.WriteLine("BEGIN CATCH");
+    sw.WriteLine("IF @@TRANCOUNT > 0");
+    sw.WriteLine("BEGIN");
+    sw.WriteLine("\tROLLBACK TRAN;");
+    sw.WriteLine("END;");
+    sw.WriteLine("THROW");
+    sw.WriteLine("END CATCH");
   }
 
   public async Task migrate(string? title = null, string? path = null, bool removeOldDb = false)

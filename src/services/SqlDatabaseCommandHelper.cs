@@ -5,6 +5,7 @@ using Hamfer.Kernel.Utils;
 using Hamfer.Repository.Attributes;
 using Hamfer.Repository.Data;
 using Hamfer.Repository.Entity;
+using Hamfer.Repository.Errors;
 using Hamfer.Repository.Models;
 using Hamfer.Verification.Errors;
 using Microsoft.Data.SqlClient;
@@ -15,14 +16,19 @@ public static class SqlDatabaseCommandHelper
 {
   public static SqlTableInfo? GatherTableInfoBy(Type type)
   {
+    if (!ReferenceTypeHelper.IsDerivedOfGenericInterface(type, typeof(IRepositoryEntity<>)))
+    {
+      throw new RepositoryError($"The <{type.FullName}> can't be used for gathering table-info.");
+    }
+
     #region Get Table Meta Data
     string? schema = null;
     string? tableName = null;
     bool? ignored = null;
     string? description = null;
-    string? unique = null;
-    string? tablePrimarykey = null;
-    List<string>? uniques = null;
+    string? tablePrimarykeyCsv = null;
+    Dictionary<string, string[]>? uniques = null;
+    string? tableUniqueCsv = null;
 
     IEnumerable<RepositoryTableAttribute>? atts = type.GetCustomAttributes<RepositoryTableAttribute>(true);
     foreach (RepositoryTableAttribute att in atts)
@@ -42,19 +48,24 @@ public static class SqlDatabaseCommandHelper
           _ = ValueTypeHelper.TryParse(att.value, out description);
           break;
         case SqlTableParam.Set_PrimaryKey_commaSeparatedString:
-          _ = ValueTypeHelper.TryParse(att.value, out tablePrimarykey);
+          _ = ValueTypeHelper.TryParse(att.value, out tablePrimarykeyCsv);
           break;
         case SqlTableParam.With_UniqueConstraints_commaSeparatedString:
-          _ = ValueTypeHelper.TryParse(att.value, out unique);
-          if (unique != null)
-          {
-            uniques ??= [];
-            uniques.Add(unique);
-          }
+          _ = ValueTypeHelper.TryParse(att.value, out tableUniqueCsv);
           break;
         default:
           break;
       }
+    }
+
+    tableName = RemoveEscapeCharacters(tableName ?? type.Name);
+    Match? match = new Regex(@"^(?<name>.+?)(Model|DataModel|Entity|EntityModel|Table|TableModel)$", RegexOptions.IgnoreCase).Match(tableName);
+    tableName = match != null && match.Success ? match.Groups["name"].ToString() : tableName;
+    
+    if (tableUniqueCsv != null)
+    {
+      uniques ??= [];
+      uniques.Add("", [.. Regex.Replace(tableUniqueCsv, @"\s+", "", RegexOptions.IgnoreCase).Split(",")]);
     }
     #endregion
 
@@ -65,7 +76,8 @@ public static class SqlDatabaseCommandHelper
     }
 
     List<SqlColumnInfo> columns = [];
-    List<string>? primaryKeys = tablePrimarykey != null ? [.. Regex.Replace(tablePrimarykey, @"\s+", "", RegexOptions.IgnoreCase).Split(",")] : null;
+    List<string>? primaryKeys = tablePrimarykeyCsv != null ? [.. Regex.Replace(tablePrimarykeyCsv, @"\s+", "", RegexOptions.IgnoreCase).Split(",")] : null;
+
 
     foreach (PropertyInfo prop in type.GetProperties())
     {
@@ -88,9 +100,9 @@ public static class SqlDatabaseCommandHelper
 
       string? colName = null;
       bool? isPrimaryKey = null;
+      string? uniqueGroup = null;
       bool? isNullable = null;
       bool? isNotNullable = null;
-      dynamic? defaultValue;
       string? colDesc = null;
 
       IEnumerable<RepositoryColumnAttribute>? patts = prop.GetCustomAttributes<RepositoryColumnAttribute>(true);
@@ -148,6 +160,9 @@ public static class SqlDatabaseCommandHelper
             _ = ValueTypeHelper.TryParse(patt.value, out isPrimaryKey);
             isPrimaryKey ??= true;
             break;
+          case SqlColumnParam.Is_Unique_With_string:
+            _ = ValueTypeHelper.TryParse(patt.value, out uniqueGroup);
+            break;
           case SqlColumnParam.Is_Nullable:
             _ = ValueTypeHelper.TryParse(patt.value, out isNullable);
             isNullable ??= true;
@@ -161,7 +176,7 @@ public static class SqlDatabaseCommandHelper
             ignored ??= true;
             break;
           case SqlColumnParam.With_DefaultValue_string:
-            _ = ValueTypeHelper.TryParse(patt.value, out defaultValue);
+            _ = ValueTypeHelper.TryParse(patt.value, out dynamic? defaultValue);
             break;
           case SqlColumnParam.Set_Name:
             _ = ValueTypeHelper.TryParse(patt.value, out colName);
@@ -175,6 +190,7 @@ public static class SqlDatabaseCommandHelper
       }
       #endregion
 
+      // Console.Write($"🧡 {type.FullName}: {schema}.{tableName}.{colName} {ptype.Name} ");
       // Ignored property detected!, So skip to next ;)
       if (ignored ?? false)
       {
@@ -322,6 +338,22 @@ public static class SqlDatabaseCommandHelper
         primaryKeys.Add(columnName);
       }
 
+      // UNIQUE CONSTRAINT
+      if (uniqueGroup != null)
+      {
+        uniques ??= [];
+        if (uniques.ContainsKey(uniqueGroup))
+        {
+          List<string>? value = uniques.GetValueOrDefault(uniqueGroup)?.ToList();
+          value?.Add(columnName);
+          uniques.Remove(uniqueGroup);
+          uniques.Add(uniqueGroup, value?.ToArray() ?? []);
+        } else
+        {
+          uniques.Add(uniqueGroup, [columnName]);
+        }
+      }
+
       cibuilder.withDescription(colDesc);
 
       columns.Add(cibuilder.build());
@@ -340,7 +372,7 @@ public static class SqlDatabaseCommandHelper
         columns = columns,
         primaryKeys = primaryKeys?.ToArray(),
         description = description,
-        uniqueConstraints = uniques?.ToArray()
+        uniqueConstraints = uniques
     };
 
     return result;
@@ -367,35 +399,40 @@ public static class SqlDatabaseCommandHelper
     string schema = RemoveEscapeCharacters(sti.schema!);
     string table = RemoveEscapeCharacters(sti.name!);
     string tableFullName = $"[{schema}].[{table}]";
+    string nl = Environment.NewLine;
 
     List<string> columnStrings = [];
-    List<SqlCommand> defaultValueCommands = [];
     List<SqlCommand> columnDescriptionCommands = [];
     foreach (SqlColumnInfo sci in sti.columns!)
     {
       string column = RemoveEscapeCharacters(sci.name!);
-      columnStrings.Add($"[{column}] {sci.sqlDbTypeText} {(sci.isNullable ? "NULL" : "NOT NULL")}");
+      string columnString = $"[{column}] {sci.sqlDbTypeText} {(sci.isNullable ? "NULL" : "NOT NULL")}";
       if (sci.defaultValue != null)
       {
-        defaultValueCommands.Add(new SqlCommand($"ALTER TABLE {tableFullName} ADD DEFAULT ({sci.defaultValueText}) FOR [{column}]"));
+        columnString += $"CONSTRAINT [DF_{schema}_{table}_{column}] DEFAULT ${sci.defaultValueText}";
       }
+      columnStrings.Add(columnString);
       if (sci.description != null)
       {
         columnDescriptionCommands.Add(new SqlCommand($"EXEC sys.sp_addextendedproperty @name=N'Description', @value=N'{sti.description}', @level0type=N'SCHEMA',@level0name=N'{schema}', @level1type=N'TABLE',@level1name=N'{table}', @level2type=N'COLUMN',@level2name=N'{column}' "));
       }
     }
-    string columnsString = columnStrings.Aggregate((a, b) => $"{a}, {b}");
+    string columnsString = columnStrings.Aggregate((a, b) => $"{a},{nl}\t{b}");
 
-    string primaryKeysString = sti.primaryKeys!.Select(spk => $"[{RemoveEscapeCharacters(spk)}] ASC").Aggregate((a, b) => $"{a}, {b}");
-    string primaryKeyString = $", CONSTRAINT [PK_{schema}.{table}] PRIMARY KEY CLUSTERED ({primaryKeysString} ) WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON) ON [PRIMARY]";
+    string primaryKeysString = sti.primaryKeys!.Select(spk => $"[{RemoveEscapeCharacters(spk)}]").Aggregate((a, b) => $"{a}, {b}");
+    string primaryKeyString = $",{nl}\tCONSTRAINT [PK_{schema}_{table}] PRIMARY KEY CLUSTERED ({primaryKeysString})";
 
     string uniqueConstraintString = "";
     if (sti.uniqueConstraints != null) {
-      string uniqueConstraintsString = sti.uniqueConstraints.Select(suc => $"[{RemoveEscapeCharacters(suc)}] ASC").Aggregate((a, b) => $"{a}, {b}");
-      uniqueConstraintString = $", CONSTRAINT [IX_{schema}.{table}] UNIQUE NONCLUSTERED ({uniqueConstraintsString} ) WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON) ON [PRIMARY]";
+      foreach (KeyValuePair<string, string[]> unique in sti.uniqueConstraints)
+      {
+        string uniquesString = unique.Value.Select(u => $"[{RemoveEscapeCharacters(u)}]").Aggregate((a, b) => $"{a}, {b}");
+        string key = unique.Key != "" ? $"_{unique.Key}" : "";
+        uniqueConstraintString = $",{nl}\tCONSTRAINT [IX_{schema}_{table}{key}] UNIQUE NONCLUSTERED ({uniquesString})";
+      }
     }
 
-    SqlCommand createCommand = new($"CREATE TABLE [{tableFullName}] ({columnsString}{primaryKeyString}{uniqueConstraintString}) ON [PRIMARY]");
+    SqlCommand createCommand = new($"CREATE TABLE [{tableFullName}] ({nl}\t{columnsString}{primaryKeyString}{uniqueConstraintString}{nl})");
   
     SqlCommand? descriptionCommand = sti.description != null 
       ? new($"EXEC sys.sp_addextendedproperty @name=N'Description', @value=N'{sti.description}', @level0type=N'SCHEMA',@level0name=N'{schema}', @level1type=N'TABLE',@level1name=N'{table}'")
@@ -406,7 +443,6 @@ public static class SqlDatabaseCommandHelper
     return new TableCommand { 
       create = createCommand,
       //relations = relationCommands,
-      defaulValues = defaultValueCommands.Count > 0 ? [.. defaultValueCommands] : null,
       description = descriptionCommand,
       columnDescriptions = columnDescriptionCommands.Count > 0 ? columnDescriptionCommands?.ToArray() : null,
     };

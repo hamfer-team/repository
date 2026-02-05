@@ -26,6 +26,7 @@ public enum SqlColumnParam
   With_SupprtsUnicode,
   
   Is_PrimaryKey,
+  Is_Unique_With_string,
   Is_Ignored,
 
   With_AutomaticGeneration,
