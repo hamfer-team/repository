@@ -96,72 +96,82 @@ public static class SqlDatabaseCommandHelper
       IEnumerable<RepositoryColumnAttribute>? patts = prop.GetCustomAttributes<RepositoryColumnAttribute>(true);
       foreach (RepositoryColumnAttribute patt in patts)
       {
-          switch (patt.param)
-          {
-              case SqlColumnParam.With_FixedLength:
-                  _ = ValueTypeHelper.TryParse(patt.value, out fixedLength);
-                  break;
-              case SqlColumnParam.Set_StorageSize_int:
-                  _ = ValueTypeHelper.TryParse(patt.value, out storageSize);
-                  break;
-              case SqlColumnParam.Is_DateOnly:
-                  _ = ValueTypeHelper.TryParse(patt.value, out dateOnly);
-                  break;
-              case SqlColumnParam.Set_FractionalSecondScale_int:
-                  _ = ValueTypeHelper.TryParse(patt.value, out fractionalSecondScale);
-                  break;
-              case SqlColumnParam.Set_Precision_int:
-                  _ = ValueTypeHelper.TryParse(patt.value, out precision);
-                  break;
-              case SqlColumnParam.Set_Scale_int:
-                  _ = ValueTypeHelper.TryParse(patt.value, out scale);
-                  break;
-              case SqlColumnParam.With_SupprtsUnicode:
-                  _ = ValueTypeHelper.TryParse(patt.value, out supprtsUnicode);
-                  break;
-              case SqlColumnParam.With_AutomaticGeneration:
-                  _ = ValueTypeHelper.TryParse(patt.value, out automaticGeneration);
-                  break;
-              case SqlColumnParam.Is_Money:
-                  _ = ValueTypeHelper.TryParse(patt.value, out isMoney);
-                  break;
-              case SqlColumnParam.Is_SmallMoney:
-                  _ = ValueTypeHelper.TryParse(patt.value, out isSmallMoney);
-                  break;
-              case SqlColumnParam.With_MaxSize:
-                  _ = ValueTypeHelper.TryParse(patt.value, out maxSize);
-                  break;
-              case SqlColumnParam.Is_Identity_With_Seed_int:
-                  _ = ValueTypeHelper.TryParse(patt.value, out identitySeed);
-                  break;
-              case SqlColumnParam.Is_Identity_With_Increment_int:
-                  _ = ValueTypeHelper.TryParse(patt.value, out identityIncrement);
-                  break;
-              case SqlColumnParam.Is_PrimaryKey:
-                  _ = ValueTypeHelper.TryParse(patt.value, out isPrimaryKey);
-                  break;
-              case SqlColumnParam.Is_Nullable:
-                  _ = ValueTypeHelper.TryParse(patt.value, out isNullable);
-                  break;
-              case SqlColumnParam.Is_Not_Nullable:
-                  _ = ValueTypeHelper.TryParse(patt.value, out isNotNullable);
-                  break;
-              case SqlColumnParam.Is_Ignored:
-                  _ = ValueTypeHelper.TryParse(patt.value, out ignored);
-                  break;
-              case SqlColumnParam.With_DefaultValue_string:
-                  defaultValue = patt.value;
-                  //ToDo : change to property type
-                  break;
-              case SqlColumnParam.Set_Name:
-                  colName = patt.value;
-                  break;
-              case SqlColumnParam.Set_Description:
-                  colDesc = patt.value;
-                  break;
-              default:
-                  break;
-          }
+        switch (patt.param)
+        {
+          case SqlColumnParam.With_FixedLength:
+            _ = ValueTypeHelper.TryParse(patt.value, out fixedLength);
+            fixedLength ??= true;
+              break;
+          case SqlColumnParam.Set_StorageSize_int:
+            _ = ValueTypeHelper.TryParse(patt.value, out storageSize);
+            break;
+          case SqlColumnParam.Is_DateOnly:
+            _ = ValueTypeHelper.TryParse(patt.value, out dateOnly);
+            dateOnly ??= true;
+            break;
+          case SqlColumnParam.Set_FractionalSecondScale_int:
+            _ = ValueTypeHelper.TryParse(patt.value, out fractionalSecondScale);
+            break;
+          case SqlColumnParam.Set_Precision_int:
+            _ = ValueTypeHelper.TryParse(patt.value, out precision);
+            break;
+          case SqlColumnParam.Set_Scale_int:
+            _ = ValueTypeHelper.TryParse(patt.value, out scale);
+            break;
+          case SqlColumnParam.With_SupprtsUnicode:
+            _ = ValueTypeHelper.TryParse(patt.value, out supprtsUnicode);
+            supprtsUnicode ??= true;
+            break;
+          case SqlColumnParam.With_AutomaticGeneration:
+            _ = ValueTypeHelper.TryParse(patt.value, out automaticGeneration);
+            automaticGeneration ??= true;
+            break;
+          case SqlColumnParam.Is_Money:
+            _ = ValueTypeHelper.TryParse(patt.value, out isMoney);
+            isMoney ??= true;
+            break;
+          case SqlColumnParam.Is_SmallMoney:
+            _ = ValueTypeHelper.TryParse(patt.value, out isSmallMoney);
+            isSmallMoney ??= true;
+            break;
+          case SqlColumnParam.With_MaxSize:
+            _ = ValueTypeHelper.TryParse(patt.value, out maxSize);
+            maxSize ??= true;
+            break;
+          case SqlColumnParam.Is_Identity_With_Seed_int:
+            _ = ValueTypeHelper.TryParse(patt.value, out identitySeed);
+            break;
+          case SqlColumnParam.Is_Identity_With_Increment_int:
+            _ = ValueTypeHelper.TryParse(patt.value, out identityIncrement);
+            break;
+          case SqlColumnParam.Is_PrimaryKey:
+            _ = ValueTypeHelper.TryParse(patt.value, out isPrimaryKey);
+            isPrimaryKey ??= true;
+            break;
+          case SqlColumnParam.Is_Nullable:
+            _ = ValueTypeHelper.TryParse(patt.value, out isNullable);
+            isNullable ??= true;
+            break;
+          case SqlColumnParam.Is_Not_Nullable:
+            _ = ValueTypeHelper.TryParse(patt.value, out isNotNullable);
+            isNotNullable ??= true;
+            break;
+          case SqlColumnParam.Is_Ignored:
+            _ = ValueTypeHelper.TryParse(patt.value, out ignored);
+            ignored ??= true;
+            break;
+          case SqlColumnParam.With_DefaultValue_string:
+            _ = ValueTypeHelper.TryParse(patt.value, out defaultValue);
+            break;
+          case SqlColumnParam.Set_Name:
+            _ = ValueTypeHelper.TryParse(patt.value, out colName);
+            break;
+          case SqlColumnParam.Set_Description:
+            _ = ValueTypeHelper.TryParse(patt.value, out colDesc);
+            break;
+          default:
+            break;
+        }
       }
       #endregion
 
@@ -330,7 +340,7 @@ public static class SqlDatabaseCommandHelper
       return null;
     }
 
-    var result = new SqlTableInfo
+    SqlTableInfo result = new()
     {
         schema = RemoveEscapeCharacters(schema ?? "dbo"),
         name = RemoveEscapeCharacters(tableName ?? type.Name),
@@ -406,8 +416,6 @@ public static class SqlDatabaseCommandHelper
     };
   }
 
-  public static readonly SqlCommand[] PreparingCommands = [ new SqlCommand("SET ANSI_NULLS ON"), new SqlCommand("SET QUOTED_IDENTIFIER ON") ];
-
   private static string RemoveEscapeCharacters(string text)
       => text.Replace("'", "").Replace("[", "").Replace("]", "");
 }
@@ -419,4 +427,6 @@ public sealed class TableCommand
   public SqlCommand[]? defaulValues { get; set; }
   public SqlCommand? description { get; set; }
   public SqlCommand[]? columnDescriptions { get; set; }
+
+  public static readonly SqlCommand[] PreparingCommands = [ new SqlCommand("SET ANSI_NULLS ON"), new SqlCommand("SET QUOTED_IDENTIFIER ON") ];
 }
