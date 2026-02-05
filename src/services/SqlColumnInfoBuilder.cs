@@ -1,8 +1,8 @@
-﻿using Hamfer.Repository.Data;
+﻿using System.Data;
+using Hamfer.Kernel.Utils;
+using Hamfer.Repository.Data;
 using Hamfer.Repository.Errors;
 using Hamfer.Repository.Models;
-using System.Data;
-using System.Text.Json;
 
 namespace Hamfer.Repository.Services;
 
@@ -32,13 +32,13 @@ public class SqlColumnInfoBuilder
   };
 
   private readonly string name;
-  private SqlDbType dbType;
+  private SqlDbType? dbType;
   private int? charMaxLength;
   private int? numericPrecision;
   private int? numericScale;
   private int? timeScale;
   private bool nullable;
-  private dynamic? defaultValue;
+  private string? defaultValue;
   private string? description;
   private int? identitySeed;
   private int? identityIncrement;
@@ -48,8 +48,8 @@ public class SqlColumnInfoBuilder
   public SqlColumnInfoBuilder(string name)
   {
     this.name = name;
-    this.dbType = SqlDbType.NVarChar;
-    this.charMaxLength = 25;
+    this.dbType = null;
+    this.charMaxLength = null;
     this.nullable = true;
     this.sqlDbTypeText = null;
     this.defaultValueText = null;
@@ -67,10 +67,15 @@ public class SqlColumnInfoBuilder
     return this;
   }
 
-  public SqlColumnInfoBuilder withDefaultValue(dynamic defaultValue)
+  public SqlColumnInfoBuilder withDefaultValue(string defaultValue)
   {
     this.defaultValue = defaultValue;
-    this.defaultValueText = this.defaultValueText != null ? string.Format(this.defaultValueText, defaultValue) : null;
+
+    if (this.dbType != null)
+    {
+      this.defaultValueText = SqlCommandTextHelper.getValueText(defaultValue, this.dbType.Value);
+    }
+
     return this;
   }
 
@@ -78,14 +83,14 @@ public class SqlColumnInfoBuilder
   {
     if (storageSize < 1)
     {
-      throw new RepositorySqlColumnBuilderError(name, $"حداقل طول فیلد متنی {name} باید یک حرف باشد!");
+      throw new RepositorySqlColumnBuilderError(this.name, $"حداقل طول فیلد متنی {this.name} باید یک حرف باشد!");
     }
 
     if (supprtsUnicode)
     {
       if (storageSize > 4000)
       {
-        throw new RepositorySqlColumnBuilderError(name, $"حداکثر فضای ذخیره‌سازی فیلد متنی {name} می‌تواند 4000 بایت باشد!");
+        throw new RepositorySqlColumnBuilderError(this.name, $"حداکثر فضای ذخیره‌سازی فیلد متنی {this.name} می‌تواند 4000 بایت باشد!");
       }
 
       this.dbType = variableLength ? SqlDbType.NVarChar : SqlDbType.NChar;
@@ -98,12 +103,12 @@ public class SqlColumnInfoBuilder
         throw new RepositorySqlColumnBuilderError(name, $"حداکثر فضای ذخیره‌سازی فیلد متنی {name} می تواند 8000 بایت باشد!");
       }
 
-     this.dbType = variableLength ? SqlDbType.VarChar : SqlDbType.Char;
+      this.dbType = variableLength ? SqlDbType.VarChar : SqlDbType.Char;
       this.charMaxLength = storageSize;
     }
 
-    this.sqlDbTypeText = $"[{this.dbType.ToString().ToLowerInvariant()}]({storageSize})";
-    this.defaultValueText = this.defaultValue != null ? $"'{this.defaultValue}'" : "'{0}'";
+    this.sqlDbTypeText = $"[{this.dbType?.ToString().ToLowerInvariant()}]({storageSize})";
+    this.defaultValueText = SqlCommandTextHelper.getValueText(this.defaultValue, this.dbType!.Value);
     return this;
   }
 
@@ -117,8 +122,8 @@ public class SqlColumnInfoBuilder
     this.dbType = variableLength ? SqlDbType.VarBinary : SqlDbType.Binary;
     this.charMaxLength = storageSize; // TODO: 2x
 
-    this.sqlDbTypeText = $"[{this.dbType.ToString().ToLowerInvariant()}]({storageSize})";
-    this.defaultValueText = this.defaultValue != null ? $"'{this.defaultValue}'" : "'{0}'";
+    this.sqlDbTypeText = $"[{this.dbType?.ToString().ToLowerInvariant()}]({storageSize})";
+    this.defaultValueText = SqlCommandTextHelper.getValueText(this.defaultValue, this.dbType!.Value);
     return this;
   }
 
@@ -139,8 +144,8 @@ public class SqlColumnInfoBuilder
     this.numericPrecision = precision;
     this.numericScale = scale;
 
-    this.sqlDbTypeText = $"[{this.dbType}]({this.numericPrecision},{this.numericScale})";
-    this.defaultValueText = this.defaultValue != null ? $"({Convert.ChangeType(this.defaultValue, TypeCode.Decimal)})" : "({0})";
+    this.sqlDbTypeText = $"[{this.dbType?.ToString().ToLowerInvariant()}]({this.numericPrecision},{this.numericScale})";
+    this.defaultValueText = SqlCommandTextHelper.getValueText(this.defaultValue, this.dbType!.Value);
     return this;
   }
 
@@ -152,7 +157,7 @@ public class SqlColumnInfoBuilder
     }
 
     this.dbType = mantissaBits < 25 ? SqlDbType.Real : SqlDbType.Float;
-    this.defaultValueText = this.defaultValue != null ? $"({Convert.ChangeType(this.defaultValue, TypeCode.Double)})" : "({0})";
+    this.defaultValueText = SqlCommandTextHelper.getValueText(this.defaultValue, this.dbType!.Value);
     return this;
   }
 
@@ -175,51 +180,50 @@ public class SqlColumnInfoBuilder
      this.dbType = SqlDbType.TinyInt;
     }
 
-    this.defaultValueText = this.defaultValue != null ? $"({Convert.ChangeType(this.defaultValue, TypeCode.Int64)})" : "({0})";
+    this.defaultValueText = SqlCommandTextHelper.getValueText(this.defaultValue, this.dbType!.Value);
     return this;
   }
 
   public SqlColumnInfoBuilder isBoolean()
   {
     this.dbType = SqlDbType.Bit;
-    bool? defaultValue = Convert.ChangeType(this.defaultValue, TypeCode.Boolean);
-    this.defaultValueText = defaultValue != null ? $"({(defaultValue.Value ? "1": "0")})" : "({0})";
+    this.defaultValueText = SqlCommandTextHelper.getValueText(this.defaultValue, this.dbType!.Value);
     return this;
   }
 
   public SqlColumnInfoBuilder isMoney(bool isSmall = false)
   {
     this.dbType = isSmall ? SqlDbType.SmallMoney : SqlDbType.Money;
-    this.defaultValueText = this.defaultValue != null ? $"({Convert.ChangeType(this.defaultValue, TypeCode.Decimal)})" : "({0})";
+    decimal? defaultValue = TypeHelper.ChangeTypeTo<decimal?>(this.defaultValue);
+    this.defaultValueText = this.defaultValue != null ? $"({defaultValue})" : "({0})";
+    this.defaultValueType = valueTexterType.numeric;
     return this;
   }
 
   public SqlColumnInfoBuilder isDate()
   {
     this.dbType = SqlDbType.Date;
-    DateTime? defaultValue = this.defaultValue ? Convert.ChangeType(this.defaultValue, TypeCode.DateTime) : null;
-    this.defaultValueText = defaultValue != null ? $"'{defaultValue?.ToString("yyyy-MM-dd hh:mm:ss.fffffff")}'" : "'{0}'";
+    this.defaultValueText = SqlCommandTextHelper.getValueText(this.defaultValue, this.dbType!.Value);
     return this;
   }
 
   public SqlColumnInfoBuilder isUid(bool automaticGeneration = false)
   {
     this.dbType = automaticGeneration ? SqlDbType.Timestamp : SqlDbType.UniqueIdentifier;
-    this.defaultValueText = this.defaultValue != null ? $"'{Convert.ChangeType(this.defaultValue, typeof(Guid))}'" : "'{0}'";
+    this.defaultValueText = SqlCommandTextHelper.getValueText(this.defaultValue, this.dbType!.Value);
     return this;
   }
 
   public SqlColumnInfoBuilder isObject()
   {
-    this.dbType = SqlDbType.Variant;
-    object? defaultValue = Convert.ChangeType(this.defaultValue, TypeCode.Object);
-    this.defaultValueText = this.defaultValue != null ? $"'{JsonSerializer.Serialize(defaultValue)}'" : "'{0}'";
+    this.dbType = SqlDbType.Json;
+    this.defaultValueText = SqlCommandTextHelper.getValueText(this.defaultValue, this.dbType!.Value);
     return this;
   }
 
   public SqlColumnInfoBuilder withTime(int fractionalSecondScale = 3)
   {
-    if (this.dbType.ToString().Contains("Date", StringComparison.InvariantCultureIgnoreCase))
+    if (this.dbType != null && this.dbType.ToString()!.Contains("Date", StringComparison.InvariantCultureIgnoreCase))
     {
       if (fractionalSecondScale < 0 || fractionalSecondScale > 7)
       {
@@ -230,19 +234,19 @@ public class SqlColumnInfoBuilder
       {
         this.dbType = SqlDbType.DateTime2;
         this.timeScale = fractionalSecondScale;
-        this.sqlDbTypeText = $"[{this.dbType.ToString().ToLowerInvariant()}]({this.timeScale})";
-        DateTime? defaultValue = this.defaultValue ? Convert.ChangeType(this.defaultValue, TypeCode.DateTime) : null;
-        this.defaultValueText = defaultValue != null ? $"'{defaultValue?.ToString("yyyy-MM-dd hh:mm:ss.fffffff")}'" : "'{0}'";
+      }
+      else if (fractionalSecondScale > 1)
+      {
+        this.dbType = SqlDbType.DateTime;
       }
       else
       {
         this.dbType = SqlDbType.SmallDateTime;
-        DateTime? defaultValue = this.defaultValue ? Convert.ChangeType(this.defaultValue, TypeCode.DateTime) : null;
-        this.defaultValueText = defaultValue != null ? $"'{defaultValue?.ToString("yyyy-MM-dd hh:mm:ss.fff")}'" : "'{0}'";
       }
 
-      this.sqlDbTypeText ??=this.dbType.ToString().ToLowerInvariant();
+      this.sqlDbTypeText ??= this.dbType?.ToString().ToLowerInvariant();
       this.timeScale = fractionalSecondScale;
+      this.defaultValueText = SqlCommandTextHelper.getValueText(this.defaultValue, this.dbType!.Value);
     }
     else
     {
@@ -253,7 +257,7 @@ public class SqlColumnInfoBuilder
 
       this.dbType = SqlDbType.Time;
       this.timeScale = fractionalSecondScale;
-      this.sqlDbTypeText = $"[{this.dbType.ToString().ToLowerInvariant()}]({timeScale})";
+      this.sqlDbTypeText = $"[{this.dbType?.ToString().ToLowerInvariant()}]({timeScale})";
     }
     
     return this;
@@ -262,8 +266,7 @@ public class SqlColumnInfoBuilder
   public SqlColumnInfoBuilder withTimeZone()
   {
     this.dbType = SqlDbType.DateTimeOffset;
-    DateTime? defaultValue = this.defaultValue ? Convert.ChangeType(this.defaultValue, typeof(DateTimeOffset)) : null;
-    this.defaultValueText = defaultValue != null ? $"'{defaultValue}'" : "'{0}'";
+    this.defaultValueText = SqlCommandTextHelper.getValueText(this.defaultValue, this.dbType!.Value);
     return this;
   }
 
@@ -286,19 +289,19 @@ public class SqlColumnInfoBuilder
       case SqlDbType.VarBinary:
       case SqlDbType.VarChar:
         this.charMaxLength = 8000;
-        this.sqlDbTypeText = $"[{this.dbType.ToString().ToLowerInvariant()}](max)";
+        this.sqlDbTypeText = $"[{this.dbType?.ToString().ToLowerInvariant()}](max)";
         break;
 
       case SqlDbType.NChar:
       case SqlDbType.NVarChar:
         this.charMaxLength = 4000;
-        this.sqlDbTypeText = $"[{this.dbType.ToString().ToLowerInvariant()}](max)";
+        this.sqlDbTypeText = $"[{this.dbType?.ToString().ToLowerInvariant()}](max)";
         break;
 
       case SqlDbType.Decimal:
         this.numericPrecision = 38;
         this.numericScale = 10;
-        this.sqlDbTypeText = $"[{this.dbType.ToString().ToLowerInvariant()}]({numericPrecision},{numericScale})";
+        this.sqlDbTypeText = $"[{this.dbType?.ToString().ToLowerInvariant()}]({numericPrecision},{numericScale})";
         break;
 
       case SqlDbType.Float:
@@ -316,12 +319,12 @@ public class SqlColumnInfoBuilder
       case SqlDbType.DateTime2:
        this.dbType = SqlDbType.DateTime2;
         this.timeScale = 7;
-        this.sqlDbTypeText = $"[{this.dbType.ToString().ToLowerInvariant()}]({timeScale})";
+        this.sqlDbTypeText = $"[{this.dbType?.ToString().ToLowerInvariant()}]({timeScale})";
         break;
 
       case SqlDbType.Time:
         this.timeScale = 7;
-        this.sqlDbTypeText = $"[{this.dbType.ToString().ToLowerInvariant()}]({timeScale})";
+        this.sqlDbTypeText = $"[{this.dbType?.ToString().ToLowerInvariant()}]({timeScale})";
         break;
 
       case SqlDbType.Bit:
@@ -341,7 +344,7 @@ public class SqlColumnInfoBuilder
         break;
     }
 
-    this.sqlDbTypeText = (this.sqlDbTypeText ?? this.dbType.ToString().ToLowerInvariant()) +
+    this.sqlDbTypeText = (this.sqlDbTypeText ?? this.dbType?.ToString().ToLowerInvariant()) +
       (hadIdentity ? $" IDENTITY({this.identitySeed},{this.identityIncrement}) " : "");
     return this;
   }
@@ -376,7 +379,7 @@ public class SqlColumnInfoBuilder
       description = this.description,
       identitySeed = this.identitySeed,
       identityIncrement = this.identityIncrement,
-      sqlDbTypeText = this.sqlDbTypeText ?? this.dbType.ToString().ToLowerInvariant(),
+      sqlDbTypeText = this.sqlDbTypeText ?? this.dbType?.ToString().ToLowerInvariant(),
     };
   }
 }
