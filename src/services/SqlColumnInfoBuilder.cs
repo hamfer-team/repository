@@ -364,6 +364,7 @@ public class SqlColumnInfoBuilder
     Type? underlyingType = Nullable.GetUnderlyingType(type);
     if (underlyingType != null)
     {
+      // Console.Write($"{underlyingType.Name} ");
       type = underlyingType;
     }
 
@@ -391,10 +392,12 @@ public class SqlColumnInfoBuilder
 
     if (typePairs.TryGetValue(type.Name, out MidDataType _midType))
     {
+      // Console.WriteLine(_midType);
       midType = _midType;
       return true;
     }
 
+    // Console.WriteLine("💔");
     return false;
   }
 }

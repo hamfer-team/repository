@@ -5,7 +5,6 @@ using Hamfer.Kernel.Utils;
 using Hamfer.Repository.Attributes;
 using Hamfer.Repository.Data;
 using Hamfer.Repository.Entity;
-using Hamfer.Repository.Errors;
 using Hamfer.Repository.Models;
 using Hamfer.Verification.Errors;
 using Microsoft.Data.SqlClient;
