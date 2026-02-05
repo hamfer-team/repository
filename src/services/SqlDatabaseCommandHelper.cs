@@ -7,14 +7,12 @@ using Hamfer.Repository.Models;
 using Hamfer.Verification.Errors;
 using Microsoft.Data.SqlClient;
 using System.Reflection;
-using System.Text;
+using System.Text.RegularExpressions;
 
 namespace Hamfer.Repository.Services;
 
 public static class SqlDatabaseCommandHelper
 {
-  private static readonly List<string> RepositoryEntityIgnoreColumns = ["Id"];
-
   public static SqlTableInfo? GatherTableInfoBy(Type type)
   {
     #region Get Table Meta Data
@@ -24,32 +22,35 @@ public static class SqlDatabaseCommandHelper
     string? description = null;
     string? unique = null;
     string? tablePrimarykey = null;
-    string? primarykey = null;
-    List<string> uniques = [];
+    List<string>? uniques = null;
 
-    var atts = type.GetCustomAttributes<RepositoryTableAttribute>(true);
-    foreach (var att in atts)
+    IEnumerable<RepositoryTableAttribute>? atts = type.GetCustomAttributes<RepositoryTableAttribute>(true);
+    foreach (RepositoryTableAttribute att in atts)
     {
       switch (att.param)
       {
         case SqlTableParam.Set_Name:
-          tableName = att.value;
+          _ = ValueTypeHelper.TryParse(att.value, out tableName);
           break;
         case SqlTableParam.Set_Schema:
-          schema = att.value;
+          _ = ValueTypeHelper.TryParse(att.value, out schema);
           break;
         case SqlTableParam.Is_Ignored:
-          ValueTypeHelper.TryParse(att.value, out ignored);
+          _ = ValueTypeHelper.TryParse(att.value, out ignored);
           break;
         case SqlTableParam.Set_Description:
-          description = att.value;
+          _ = ValueTypeHelper.TryParse(att.value, out description);
           break;
         case SqlTableParam.Set_PrimaryKey_commaSeparatedString:
-          tablePrimarykey = att.value;
+          _ = ValueTypeHelper.TryParse(att.value, out tablePrimarykey);
           break;
         case SqlTableParam.With_UniqueConstraints_commaSeparatedString:
-          unique = att.value;
-          uniques.Add(unique);
+          _ = ValueTypeHelper.TryParse(att.value, out unique);
+          if (unique != null)
+          {
+            uniques ??= [];
+            uniques.Add(unique);
+          }
           break;
         default:
           break;
@@ -57,22 +58,18 @@ public static class SqlDatabaseCommandHelper
     }
     #endregion
 
-    // ok, Ok, OK! I'll ignore this.
     if (ignored ?? false)
     {
+      // ok, Ok, OK! I'll ignore this entity.
       return null;
     }
 
-    var columns = new List<SqlColumnInfo>();
+    List<SqlColumnInfo> columns = [];
+    List<string>? primaryKeys = tablePrimarykey != null ? [.. Regex.Replace(tablePrimarykey, @"\s+", "", RegexOptions.IgnoreCase).Split(",")] : null;
+
     foreach (PropertyInfo prop in type.GetProperties())
     {
-      // we don't need to add some columns like Id in SqlCommand :D
-      if (RepositoryEntityIgnoreColumns.Contains(prop.Name))
-      {
-        continue;
-      }
-
-      var ptype =  prop.PropertyType;
+      Type ptype =  prop.PropertyType;
 
       #region Get Column Meta Data
       bool? fixedLength = null;
@@ -96,61 +93,61 @@ public static class SqlDatabaseCommandHelper
       dynamic? defaultValue;
       string? colDesc = null;
 
-      var patts = prop.GetCustomAttributes<RepositoryColumnAttribute>(true);
-      foreach (var patt in patts)
+      IEnumerable<RepositoryColumnAttribute>? patts = prop.GetCustomAttributes<RepositoryColumnAttribute>(true);
+      foreach (RepositoryColumnAttribute patt in patts)
       {
           switch (patt.param)
           {
               case SqlColumnParam.With_FixedLength:
-                  ValueTypeHelper.TryParse(patt.value, out fixedLength);
+                  _ = ValueTypeHelper.TryParse(patt.value, out fixedLength);
                   break;
               case SqlColumnParam.Set_StorageSize_int:
-                  ValueTypeHelper.TryParse(patt.value, out storageSize);
+                  _ = ValueTypeHelper.TryParse(patt.value, out storageSize);
                   break;
               case SqlColumnParam.Is_DateOnly:
-                  ValueTypeHelper.TryParse(patt.value, out dateOnly);
+                  _ = ValueTypeHelper.TryParse(patt.value, out dateOnly);
                   break;
               case SqlColumnParam.Set_FractionalSecondScale_int:
-                  ValueTypeHelper.TryParse(patt.value, out fractionalSecondScale);
+                  _ = ValueTypeHelper.TryParse(patt.value, out fractionalSecondScale);
                   break;
               case SqlColumnParam.Set_Precision_int:
-                  ValueTypeHelper.TryParse(patt.value, out precision);
+                  _ = ValueTypeHelper.TryParse(patt.value, out precision);
                   break;
               case SqlColumnParam.Set_Scale_int:
-                  ValueTypeHelper.TryParse(patt.value, out scale);
+                  _ = ValueTypeHelper.TryParse(patt.value, out scale);
                   break;
               case SqlColumnParam.With_SupprtsUnicode:
-                  ValueTypeHelper.TryParse(patt.value, out supprtsUnicode);
+                  _ = ValueTypeHelper.TryParse(patt.value, out supprtsUnicode);
                   break;
               case SqlColumnParam.With_AutomaticGeneration:
-                  ValueTypeHelper.TryParse(patt.value, out automaticGeneration);
+                  _ = ValueTypeHelper.TryParse(patt.value, out automaticGeneration);
                   break;
               case SqlColumnParam.Is_Money:
-                  ValueTypeHelper.TryParse(patt.value, out isMoney);
+                  _ = ValueTypeHelper.TryParse(patt.value, out isMoney);
                   break;
               case SqlColumnParam.Is_SmallMoney:
-                  ValueTypeHelper.TryParse(patt.value, out isSmallMoney);
+                  _ = ValueTypeHelper.TryParse(patt.value, out isSmallMoney);
                   break;
               case SqlColumnParam.With_MaxSize:
-                  ValueTypeHelper.TryParse(patt.value, out maxSize);
+                  _ = ValueTypeHelper.TryParse(patt.value, out maxSize);
                   break;
               case SqlColumnParam.Is_Identity_With_Seed_int:
-                  ValueTypeHelper.TryParse(patt.value, out identitySeed);
+                  _ = ValueTypeHelper.TryParse(patt.value, out identitySeed);
                   break;
               case SqlColumnParam.Is_Identity_With_Increment_int:
-                  ValueTypeHelper.TryParse(patt.value, out identityIncrement);
+                  _ = ValueTypeHelper.TryParse(patt.value, out identityIncrement);
                   break;
               case SqlColumnParam.Is_PrimaryKey:
-                  ValueTypeHelper.TryParse(patt.value, out isPrimaryKey);
+                  _ = ValueTypeHelper.TryParse(patt.value, out isPrimaryKey);
                   break;
               case SqlColumnParam.Is_Nullable:
-                  ValueTypeHelper.TryParse(patt.value, out isNullable);
+                  _ = ValueTypeHelper.TryParse(patt.value, out isNullable);
                   break;
               case SqlColumnParam.Is_Not_Nullable:
-                  ValueTypeHelper.TryParse(patt.value, out isNotNullable);
+                  _ = ValueTypeHelper.TryParse(patt.value, out isNotNullable);
                   break;
               case SqlColumnParam.Is_Ignored:
-                  ValueTypeHelper.TryParse(patt.value, out ignored);
+                  _ = ValueTypeHelper.TryParse(patt.value, out ignored);
                   break;
               case SqlColumnParam.With_DefaultValue_string:
                   defaultValue = patt.value;
@@ -177,8 +174,8 @@ public static class SqlDatabaseCommandHelper
       //TODO enum ?
       //TODO struct ?
 
-      var columnName = RemoveEscapeCharacters(colName ?? prop.Name);
-      var cibuilder = new SqlColumnInfoBuilder(columnName);
+      string columnName = RemoveEscapeCharacters(colName ?? prop.Name);
+      SqlColumnInfoBuilder cibuilder = new(columnName);
       if (SqlColumnInfoBuilder.SimpleTypeHelper.TryGetValue(ptype, out MidDataType midType))
       {
         var isIdentitySuit = false;
@@ -296,11 +293,11 @@ public static class SqlDatabaseCommandHelper
       {
         if (ReferenceTypeHelper.IsDerivedOfGenericInterface(ptype, typeof(IRepositoryEntity<>)))
         {
-          throw new RepositoryError("NotIMPLEMENTED Yet!", new NotImplementedException());
+          throw new RepositoryError($"Not IMPLEMENTED for <{ptype.Name}> Yet!", new NotImplementedException());
         }
         else
         {
-          throw new RepositoryError("NotIMPLEMENTED Yet!", new NotImplementedException());
+          throw new RepositoryError($"Not IMPLEMENTED for <{ptype.Name}> Yet!", new NotImplementedException());
         }
       }
 
@@ -318,16 +315,16 @@ public static class SqlDatabaseCommandHelper
       if (isPrimaryKey ?? false)
       {
         cibuilder.isNotNullable(); // Ooops! I should ignore some settings ;)
-        primarykey = primarykey.AppendWith(columnName);
+        primaryKeys ??= [];
+        primaryKeys.Add(columnName);
       }
 
       cibuilder.withDescription(colDesc);
 
-      var column = cibuilder.build();
-      columns.Add(column);
+      columns.Add(cibuilder.build());
     }
 
-    // I can't create a Table without any column 8o
+    // I can't create a Table without any column 8o.
     if (columns.Count < 1)
     {
       return null;
@@ -338,15 +335,15 @@ public static class SqlDatabaseCommandHelper
         schema = RemoveEscapeCharacters(schema ?? "dbo"),
         name = RemoveEscapeCharacters(tableName ?? type.Name),
         columns = columns,
-        primaryKey = primarykey ?? tablePrimarykey,
+        primaryKeys = primaryKeys?.ToArray(),
         description = description,
-        uniqueConstraints = [.. uniques]
+        uniqueConstraints = uniques?.ToArray()
     };
 
     return result;
   }
 
-  public static SqlCommand GenerateTableCommandBy(SqlTableInfo sti, string? name = null)
+  public static SqlCommand[] GenerateTableCommandsBy(SqlTableInfo sti, string? name = null)
   {
     // https://docs.microsoft.com/en-us/sql/t-sql/statements/create-table-transact-sql?view=sql-server-ver15
 
@@ -364,20 +361,50 @@ public static class SqlDatabaseCommandHelper
       throw;
     }
 
-    var palinColumnText = ", [{0}] {1} {2}";
-    var sb = new StringBuilder();
-    foreach (var sci in sti.columns!)
+    string schema = RemoveEscapeCharacters(sti.schema!);
+    string table = RemoveEscapeCharacters(sti.name!);
+    string tableFullName = $"[{schema}].[{table}]";
+
+    List<string> columnStrings = [];
+    List<SqlCommand> defaultValueCommands = [];
+    List<SqlCommand> columnDescriptionCommands = [];
+    foreach (SqlColumnInfo sci in sti.columns!)
     {
-      sb.Append(string.Format(palinColumnText, sci.name, sci.sqlDbTypeText, sci.isNullable ? "NULL" : "NOT NULL"));
+      string column = RemoveEscapeCharacters(sci.name!);
+      columnStrings.Add($"[{column}] {sci.sqlDbTypeText} {(sci.isNullable ? "NULL" : "NOT NULL")}");
+      if (sci.defaultValue != null)
+      {
+        defaultValueCommands.Add(new SqlCommand($"ALTER TABLE {tableFullName} ADD DEFAULT ({sci.defaultValueText}) FOR [{column}]"));
+      }
+      if (sci.description != null)
+      {
+        columnDescriptionCommands.Add(new SqlCommand($"EXEC sys.sp_addextendedproperty @name=N'Description', @value=N'{sti.description}', @level0type=N'SCHEMA',@level0name=N'{schema}', @level1type=N'TABLE',@level1name=N'{table}', @level2type=N'COLUMN',@level2name=N'{column}' "));
+      }
     }
+    string columnsString = columnStrings.Aggregate((a, b) => $"{a}, {b}");
 
-    var columnsString = sb.ToString();
+    string primaryKeysString = sti.primaryKeys!.Select(spk => $"[{RemoveEscapeCharacters(spk)}] ASC").Aggregate((a, b) => $"{a}, {b}");
+    string primaryKeyString = $", CONSTRAINT [PK_{schema}.{table}] PRIMARY KEY CLUSTERED ({primaryKeysString} ) WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON) ON [PRIMARY]";
 
-    var plainCreateCommand = "CREATE TABLE [{0}].[{1}] ( [Id] UNIQUEIDENTIFIER CONSTRAINT Guid_Default DEFAULT NEWSEQUENTIALID() {2} CONSTRAINT [{0}_{1}_Id_PK] PRIMARY KEY ([Id])); ";
-    var sqlcmd = string.Format(plainCreateCommand, sti.schema, sti.name, columnsString);
+    string uniqueConstraintsString = sti.uniqueConstraints!.Select(suc => $"[{RemoveEscapeCharacters(suc)}] ASC").Aggregate((a, b) => $"{a}, {b}");
+    string uniqueConstraintString = $", CONSTRAINT [IX_{schema}.{table}] UNIQUE NONCLUSTERED ({uniqueConstraintsString} ) WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON) ON [PRIMARY]";
 
-    return new SqlCommand(sqlcmd);
+    SqlCommand createCommand = new($"CREATE TABLE [{tableFullName}] ({columnsString}{primaryKeyString}{uniqueConstraintString}) ON [PRIMARY]");
+
+    SqlCommand descriptionCommand = new($"EXEC sys.sp_addextendedproperty @name=N'Description', @value=N'{sti.description}', @level0type=N'SCHEMA',@level0name=N'{schema}', @level1type=N'TABLE',@level1name=N'{table}'");
+
+    // TODO: add relations
+
+    return [ 
+      createCommand,
+      // relationCommands
+      ..defaultValueCommands,
+      descriptionCommand,
+      ..columnDescriptionCommands
+    ];
   }
+
+  public static readonly SqlCommand[] PreparingCommands = [ new SqlCommand("SET ANSI_NULLS ON"), new SqlCommand("SET QUOTED_IDENTIFIER ON") ];
 
   private static string RemoveEscapeCharacters(string text)
       => text.Replace("'", "").Replace("[", "").Replace("]", "");

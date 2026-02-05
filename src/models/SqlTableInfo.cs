@@ -8,7 +8,7 @@ public class SqlTableInfo: VerifiableModelBase<SqlTableInfo>
   public string? schema { get; set; }
   public string? name { get; set; }
   public List<SqlColumnInfo>? columns { get; set; }
-  public string? primaryKey { get; set; }
+  public string[]? primaryKeys { get; set; }
   public string[]? uniqueConstraints { get; set; }
   public string? description { get; set; }
   public List<SqlRelationInfo>? relations { get; set; }
@@ -19,13 +19,13 @@ public class SqlTableInfo: VerifiableModelBase<SqlTableInfo>
       .Assert(this.schema, "اسکیمای جدول").NotNullOrEmpty().Match(@"^[A-Za-z][A-Za-z0-9]*$")
       .Assert(this.name, "نام جدول").NotNullOrEmpty().LengthMax(128).Match(@"^[A-Za-z][A-Za-z0-9]*$")
       .Assert(this.columns, "ستون‌ها").NotNullOrEmpty().VerifyAll()
-      .Assert(this.primaryKey, "کلید اصلی").NotNullOrEmpty()
+      .Assert(this.primaryKeys, "کلید اصلی").NotNullOrEmpty()
         .CsvRow(out string[]? pkParts)
           .Assert(pkParts, "فهرست ستون‌های کلید اصلی").NotNullOrEmpty().IsMemeberOf(this.columns?.Select(c => c.name))
-      .Assert(this.uniqueConstraints, "ستون‌های یکتا").ForEachBy(item =>
-        item.CsvRow(out string[]? ucParts)
-          .Assert(ucParts, "فهرست ستون‌های یکتا").NotNullOrEmpty().IsMemeberOf(this.columns?.Select(c => c.name))
-      )
+      // .Assert(this.uniqueConstraints, "ستون‌های یکتا").ForEachBy(item =>
+      //   item.CsvRow(out string[]? ucParts)
+      //     .Assert(ucParts, "فهرست ستون‌های یکتا").NotNullOrEmpty().IsMemeberOf(this.columns?.Select(c => c.name))
+      // )
       .ThenThrowErrors();
   }
 }

@@ -8,6 +8,7 @@ public class SqlColumnInfo : VerifiableModelBase<SqlColumnInfo>
 {
   public string? name { get; set; }
   //public int OrdinalPosition { get; set; }
+  
   public dynamic? defaultValue { get; set; }
   public bool isNullable { get; set; }
   public SqlDbType? dbType { get; set; }
@@ -17,11 +18,13 @@ public class SqlColumnInfo : VerifiableModelBase<SqlColumnInfo>
   public int? timeScale { get; set; }
   //public string CharSetName { get; set; }
   //public string CollationName { get; set; }
-  public string? description { get; set; }
   public int? identitySeed { get; set; }
   public int? identityIncrement { get; set; }
 
+  public string? description { get; set; }
   public string? sqlDbTypeText { get; set; }
+
+  public string? defaultValueText { get; set; }
 
   public override void verify(string? name = null)
   {
