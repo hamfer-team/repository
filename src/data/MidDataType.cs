@@ -14,7 +14,7 @@ public enum MidDataType
   Real,           // real, float, Float
   SmallInt,       // smallint, short, Int16, sbyte, SByte
   String,         // string, varchar(1+)
-  String1,        // string(1), char, Char
+  Char,           // string(1), char, Char
   Time,           // time, TimeSpan
   TinyInt,        // tinyint, byte, Byte
   Uid             // uniqueidentifier, GUID

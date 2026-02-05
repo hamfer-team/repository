@@ -1,5 +1,4 @@
 ﻿using System.Data;
-using Hamfer.Kernel.Utils;
 using Hamfer.Repository.Data;
 using Hamfer.Repository.Errors;
 using Hamfer.Repository.Models;
@@ -8,29 +7,6 @@ namespace Hamfer.Repository.Services;
 
 public class SqlColumnInfoBuilder
 {
-  public static readonly Dictionary<Type, MidDataType> SimpleTypeHelper = new()
-  {
-    { typeof(ulong), MidDataType.Numeric20 },
-    { typeof(long), MidDataType.BigInt },
-    { typeof(uint), MidDataType.BigInt },
-    { typeof(int), MidDataType.Int },
-    { typeof(ushort), MidDataType.Int },
-    { typeof(short), MidDataType.SmallInt },
-    { typeof(sbyte), MidDataType.SmallInt },
-    { typeof(byte), MidDataType.TinyInt },
-    { typeof(bool), MidDataType.Bit },
-    { typeof(decimal), MidDataType.Decimal },   //TODO: check
-    { typeof(float), MidDataType.Real },        //TODO: check
-    { typeof(double), MidDataType.Float },      //TODO: check
-    { typeof(string), MidDataType.String },
-    { typeof(char), MidDataType.String1 },
-    { typeof(DateTime), MidDataType.DateTime }, //TODO: check
-    { typeof(DateTimeOffset), MidDataType.DateTimeOffset },
-    { typeof(byte[]), MidDataType.Binary },
-    { typeof(TimeSpan), MidDataType.Time },     //TODO: check
-    { typeof(Guid), MidDataType.Uid }
-  };
-
   private readonly string name;
   private SqlDbType? dbType;
   private int? charMaxLength;
@@ -194,9 +170,7 @@ public class SqlColumnInfoBuilder
   public SqlColumnInfoBuilder isMoney(bool isSmall = false)
   {
     this.dbType = isSmall ? SqlDbType.SmallMoney : SqlDbType.Money;
-    decimal? defaultValue = TypeHelper.ChangeTypeTo<decimal?>(this.defaultValue);
-    this.defaultValueText = this.defaultValue != null ? $"({defaultValue})" : "({0})";
-    this.defaultValueType = valueTexterType.numeric;
+    this.defaultValueText = SqlCommandTextHelper.getValueText(this.defaultValue, this.dbType!.Value);
     return this;
   }
 
@@ -380,6 +354,47 @@ public class SqlColumnInfoBuilder
       identitySeed = this.identitySeed,
       identityIncrement = this.identityIncrement,
       sqlDbTypeText = this.sqlDbTypeText ?? this.dbType?.ToString().ToLowerInvariant(),
+      defaultValueText = this.defaultValueText,
     };
+  }
+
+  public static bool TypeHelper(Type type, out MidDataType? midType)
+  {
+    midType = null;
+    Type? underlyingType = Nullable.GetUnderlyingType(type);
+    if (underlyingType != null)
+    {
+      type = underlyingType;
+    }
+
+    Dictionary<string, MidDataType> typePairs = new() { 
+      { typeof(byte).Name, MidDataType.TinyInt },
+      { typeof(sbyte).Name, MidDataType.SmallInt },
+      { typeof(short).Name, MidDataType.SmallInt },
+      { typeof(ushort).Name, MidDataType.Int },
+      { typeof(int).Name, MidDataType.Int },
+      { typeof(uint).Name, MidDataType.BigInt },
+      { typeof(long).Name, MidDataType.BigInt },
+      { typeof(ulong).Name, MidDataType.Numeric20 },
+      { typeof(bool).Name, MidDataType.Bit },
+      { typeof(decimal).Name, MidDataType.Decimal },
+      { typeof(float).Name, MidDataType.Real },
+      { typeof(double).Name, MidDataType.Float },
+      { typeof(string).Name, MidDataType.String },
+      { typeof(char).Name, MidDataType.Char },
+      { typeof(DateTime).Name, MidDataType.DateTime },
+      { typeof(DateTimeOffset).Name, MidDataType.DateTimeOffset },
+      { typeof(byte[]).Name, MidDataType.Binary },
+      { typeof(TimeSpan).Name, MidDataType.BigInt },
+      { typeof(Guid).Name, MidDataType.Uid }
+    };
+
+    if (typePairs.TryGetValue(type.Name, out MidDataType _midType))
+    {
+      midType = _midType;
+      return true;
+    }
+
+    return false;
   }
 }

@@ -186,7 +186,7 @@ public static class SqlDatabaseCommandHelper
 
       string columnName = RemoveEscapeCharacters(colName ?? prop.Name);
       SqlColumnInfoBuilder cibuilder = new(columnName);
-      if (SqlColumnInfoBuilder.SimpleTypeHelper.TryGetValue(ptype, out MidDataType midType))
+      if (SqlColumnInfoBuilder.TypeHelper(ptype, out MidDataType? midType))
       {
         var isIdentitySuit = false;
 
@@ -252,7 +252,7 @@ public static class SqlDatabaseCommandHelper
             cibuilder.isString(supprtsUnicode ?? true, fixedLength ?? true, storageSize ?? 30);
             cibuilder.isNullable();
             break;
-          case MidDataType.String1:
+          case MidDataType.Char:
             cibuilder.isString(supprtsUnicode ?? true, false, 1);
             cibuilder.isNotNullable();
             break;
@@ -299,16 +299,9 @@ public static class SqlDatabaseCommandHelper
           cibuilder.withIdentity(identitySeed ?? 1, identityIncrement ?? 1);
         }
       }
-      else
+      if (midType == null)
       {
-        if (ReferenceTypeHelper.IsDerivedOfGenericInterface(ptype, typeof(IRepositoryEntity<>)))
-        {
-          throw new RepositoryError($"Not IMPLEMENTED for <{ptype.Name}> Yet!", new NotImplementedException());
-        }
-        else
-        {
-          throw new RepositoryError($"Not IMPLEMENTED for <{ptype.Name}> Yet!", new NotImplementedException());
-        }
+        throw new RepositoryError($"Not IMPLEMENTED for <{ptype.Name}> Yet!", new NotImplementedException());
       }
 
       // IS_NULLABLE
