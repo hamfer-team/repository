@@ -11,19 +11,7 @@ public sealed class SqlCommandTextGenerator
   {
     // https://docs.microsoft.com/en-us/sql/t-sql/statements/create-table-transact-sql?view=sql-server-ver15
 
-    try
-    {
-      sti.verify(name);
-    }
-    catch (LetsVerifyAggregateError err)
-    {
-      err.writeMessages();
-      throw;
-    }
-    catch (LetsVerifyError)
-    {
-      throw;
-    }
+    VerifyTableInfo(sti, name);
 
     string nl = Environment.NewLine;
     string schema = RemoveEscapeCharacters(sti.schema!);
@@ -161,5 +149,22 @@ public sealed class SqlCommandTextGenerator
     // TODO: add relations
 
     return tableCommand;
+  }
+
+  private static void VerifyTableInfo(SqlTableInfo sti, string? name = null)
+  {
+    try
+    {
+      sti.verify(name);
+    }
+    catch (LetsVerifyAggregateError err)
+    {
+      err.writeMessages();
+      throw;
+    }
+    catch (LetsVerifyError)
+    {
+      throw;
+    }
   }
 }
