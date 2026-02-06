@@ -377,7 +377,7 @@ public static class SqlDatabaseCommandHelper
     return result;
   }
 
-  public static TableCommand? GenerateTableCommandsBy(SqlTableInfo sti, string? name = null)
+  public static TableCommand GenerateTableCommandsBy(SqlTableInfo sti, string? name = null, SqlTableInfo? dbti = null)
   {
     // https://docs.microsoft.com/en-us/sql/t-sql/statements/create-table-transact-sql?view=sql-server-ver15
 
@@ -395,69 +395,176 @@ public static class SqlDatabaseCommandHelper
       throw;
     }
 
+    string nl = Environment.NewLine;
     string schema = RemoveEscapeCharacters(sti.schema!);
     string table = RemoveEscapeCharacters(sti.name!);
     string tableFullName = $"[{schema}].[{table}]";
-    string nl = Environment.NewLine;
+
+    bool tableExists = false;
+    if (dbti != null && IsSame(sti.schema, dbti?.schema) && IsSame(sti.name, dbti?.name))
+    {
+      // Console.Write($"💛 {tableFullName} exists:");
+      tableExists = true;
+    }
 
     List<string> columnStrings = [];
-    List<SqlCommand> columnDescriptionCommands = [];
+    TableCommand tableCommand = new(tableFullName);
+
     foreach (SqlColumnInfo sci in sti.columns!)
     {
       string column = RemoveEscapeCharacters(sci.name!);
-      string columnString = $"[{column}] {sci.sqlDbTypeText} {(sci.isNullable ? "NULL" : "NOT NULL")}";
+      string columnTypeString = $"[{column}] {sci.sqlDbTypeText} {(sci.isNullable ? "NULL" : "NOT NULL")}";
+      string columnString = columnTypeString;
+      SqlColumnInfo? dbci = tableExists ? dbti?.columns?.SingleOrDefault(w => IsSame(column, w.name)) : null;
       if (sci.defaultValue != null)
       {
-        columnString += $"CONSTRAINT [DF_{schema}_{table}_{column}] DEFAULT ${sci.defaultValueText}";
+        columnString += $"CONSTRAINT {DbKeyForDefaultValue(schema, table, column)} DEFAULT ${sci.defaultValueText}";
       }
+
+      // Column description Creation or updating is same
+      if (sci.description != null && !IsSame(sci.description, dbci?.description))
+      {
+        tableCommand.setDescriptions.Add(new SqlCommand($"EXEC sys.sp_addextendedproperty @name=N'Description', @value=N'{sti.description}', @level0type=N'SCHEMA',@level0name=N'{schema}', @level1type=N'TABLE',@level1name=N'{table}', @level2type=N'COLUMN',@level2name=N'{column}';"));
+      }
+
+      if (tableExists) {
+        bool columnExists = dbci != null;
+
+        if (columnExists) {
+          bool columnTypeIsSame = columnExists && IsSame(sci.sqlDbTypeText, dbci?.defaultValueText) && (sci.isNullable == dbci!.isNullable);
+          bool columnDefIsSame = columnExists && IsSame(RemoveDefaultValueCharacters(sci.defaultValueText), RemoveDefaultValueCharacters(dbci?.defaultValueText));
+          /*
+          // TODO: DROP STATISTICS before alter column: https://learn.microsoft.com/en-us/sql/t-sql/statements/alter-table-transact-sql?view=sql-server-ver17
+
+          +------------+--------------+------------------+-----------------+-------------------------------+---------------------------------------------+
+          |tableExists | columnExists | columnTypeIsSame | columnDefIsSame | dbci.defaultValueText != null |  TODO                                       |
+          +------------+--------------+------------------+-----------------+-------------------------------+---------------------------------------------+
+          |     ✅    |      ✅      |        ✅        |       ✅       |              💢               |  [Do nothing / Continue to next column]    |
+          |     ✅    |      ✅      |        ✅        |       ❌       |              ✅               |  Drop Default + Add Default                |
+          |     ✅    |      ✅      |        ✅        |       ❌       |              ❌               |  Add Default                               |
+          |     ✅    |      ✅      |        ❌        |       ✅       |              ✅               |  Drop Default + Alter Column + Add Default |
+          |     ✅    |      ✅      |        ❌        |       ✅       |              ❌               |  Alter Column                              |
+          |     ✅    |      ✅      |        ❌        |       ❌       |              ✅               |  Drop Default + Alter Column + Add Default |
+          |     ✅    |      ✅      |        ❌        |       ❌       |              ❌               |  Alter Column + Add Default                |
+          |     ✅    |      ❌      |        💢        |       💢       |              💢               |  [Add Column]                              |
+          |     ❌    |      💢      |        💢        |       💢       |              💢               |  [Add Table]                               |
+          +------------+--------------+------------------+-----------------+-------------------------------+---------------------------------------------+
+          >> tableExists : ✅
+            >> columnExists : ✅
+              >> dbci.defaultValueText != null : ✅ => Drop Default
+              >> columnTypeIsSame : ❌ => Alter Column
+              >> !(columnTypeIsSame : ❌ && columnDefIsSame : ✅ && dbci.defaultValueText != null : ❌) => Add Default
+                = columnTypeIsSame : ✅ || columnDefIsSame : ❌ || dbci.defaultValueText != null : ✅ => Add Default
+            >> columnExists : ❌ : Add Column
+          >> tableExists : ❌ : Add Table
+          */
+
+          if (columnTypeIsSame && columnDefIsSame)
+          {
+            // Do nothing / Continue to next column
+            continue;
+          }
+
+          if (dbci?.defaultValueText != null)
+          {
+            // Drop Default
+            tableCommand.dropConstraints.Add(new SqlCommand($"ALTER TABLE {tableFullName} DROP CONSTRAINT {DbKeyForDefaultValue(schema,table,column)};"));
+          }
+
+          if (columnTypeIsSame || !columnDefIsSame || dbci?.defaultValueText != null)
+          {
+            // Add Default
+            tableCommand.updateConstraints.Add(new SqlCommand($"ALTER TABLE {tableFullName} ADD CONSTRAINT {DbKeyForDefaultValue(schema,table,column)} DEFAULT ({sci.defaultValueText}) FOR [{column}];"));
+          }
+
+          if (!columnTypeIsSame)
+          {
+            // Alter Column
+            tableCommand.updateColumns.Add(new SqlCommand($"ALTER TABLE {tableFullName} ALTER COLUMN {columnTypeString};"));
+          }
+          continue;
+        }
+
+        // Add Column
+        tableCommand.updateColumns.Add(new SqlCommand($"ALTER TABLE {tableFullName} ADD COLUMN {columnString};"));
+
+        continue;
+      }
+
+      // Add Table
       columnStrings.Add(columnString);
-      if (sci.description != null)
-      {
-        columnDescriptionCommands.Add(new SqlCommand($"EXEC sys.sp_addextendedproperty @name=N'Description', @value=N'{sti.description}', @level0type=N'SCHEMA',@level0name=N'{schema}', @level1type=N'TABLE',@level1name=N'{table}', @level2type=N'COLUMN',@level2name=N'{column}' "));
-      }
     }
-    string columnsString = columnStrings.Aggregate((a, b) => $"{a},{nl}\t{b}");
+    
+    if (tableExists)
+    {
+      
+    }
+    else
+    {
+      string columnsString = columnStrings.Aggregate((a, b) => $"{a},{nl}\t{b}");
 
-    string primaryKeysString = sti.primaryKeys!.Select(spk => $"[{RemoveEscapeCharacters(spk)}]").Aggregate((a, b) => $"{a}, {b}");
-    string primaryKeyString = $",{nl}\tCONSTRAINT [PK_{schema}_{table}] PRIMARY KEY CLUSTERED ({primaryKeysString})";
+      string primaryKeysString = sti.primaryKeys!.Select(spk => $"[{RemoveEscapeCharacters(spk)}]").Aggregate((a, b) => $"{a}, {b}");
+      string primaryKeyString = $",{nl}\tCONSTRAINT [PK_{schema}_{table}] PRIMARY KEY CLUSTERED ({primaryKeysString})";
 
-    string uniqueConstraintString = "";
-    if (sti.uniqueConstraints != null) {
-      foreach (KeyValuePair<string, string[]> unique in sti.uniqueConstraints)
-      {
-        string uniquesString = unique.Value.Select(u => $"[{RemoveEscapeCharacters(u)}]").Aggregate((a, b) => $"{a}, {b}");
-        string key = unique.Key != "" ? $"_{unique.Key}" : "";
-        uniqueConstraintString = $",{nl}\tCONSTRAINT [IX_{schema}_{table}{key}] UNIQUE NONCLUSTERED ({uniquesString})";
+      
+      string uniqueConstraintString = "";
+      if (sti.uniqueConstraints != null) {
+        foreach (KeyValuePair<string, string[]> unique in sti.uniqueConstraints)
+        {
+          string uniquesString = unique.Value.Select(u => $"[{RemoveEscapeCharacters(u)}]").Aggregate((a, b) => $"{a}, {b}");
+          string key = unique.Key != "" ? $"_{unique.Key}" : "";
+          uniqueConstraintString = $",{nl}\tCONSTRAINT [IX_{schema}_{table}{key}] UNIQUE NONCLUSTERED ({uniquesString})";
+        }
       }
+
+      tableCommand.createTable = new($"CREATE TABLE [{tableFullName}] ({nl}\t{columnsString}{primaryKeyString}{uniqueConstraintString}{nl});");
     }
 
-    SqlCommand createCommand = new($"CREATE TABLE [{tableFullName}] ({nl}\t{columnsString}{primaryKeyString}{uniqueConstraintString}{nl})");
-  
     SqlCommand? descriptionCommand = sti.description != null 
-      ? new($"EXEC sys.sp_addextendedproperty @name=N'Description', @value=N'{sti.description}', @level0type=N'SCHEMA',@level0name=N'{schema}', @level1type=N'TABLE',@level1name=N'{table}'")
+      ? new($"EXEC sys.sp_addextendedproperty @name=N'Description', @value=N'{sti.description}', @level0type=N'SCHEMA',@level0name=N'{schema}', @level1type=N'TABLE',@level1name=N'{table}';")
       : null;
+    if (descriptionCommand != null)
+    {
+      tableCommand.setDescriptions.Add(descriptionCommand);
+    }
 
     // TODO: add relations
 
-    return new TableCommand { 
-      create = createCommand,
-      //relations = relationCommands,
-      description = descriptionCommand,
-      columnDescriptions = columnDescriptionCommands.Count > 0 ? columnDescriptionCommands?.ToArray() : null,
-    };
+    return tableCommand;
   }
 
+  private static bool IsSame(string? a, string? b)
+    => (a == null && b == null) || (a?.Equals(b, StringComparison.InvariantCultureIgnoreCase) ?? false);
+
   private static string RemoveEscapeCharacters(string text)
-      => text.Replace("'", "").Replace("[", "").Replace("]", "");
+    => text.Replace("'", "").Replace("[", "").Replace("]", "");
+
+  private static string? RemoveDefaultValueCharacters(string? text)
+    => text != null ? Regex.Replace(text, @"(^\(\((?<value>.+)\)\)$|^\((?<value>.+)\)$)", match => match.Groups["value"].ToString()) : null;
+
+  private static string DbKeyForDefaultValue(string schema, string table, string column) => $"[DF_{schema}_{table}_{column}]";
+  private static string DbKeyForPrimaryKey(string schema, string table) => $"[PK_{schema}_{table}]";
+  private static string DbKeyForUnique(string schema, string table, string key) => $"[IX_{schema}_{table}{(key == "" ? "" : "_" + key)}]";
 }
 
 public sealed class TableCommand
 {
-  public required SqlCommand create { get; set; }
-  public SqlCommand[]? relations { get; set; }
-  public SqlCommand[]? defaulValues { get; set; }
-  public SqlCommand? description { get; set; }
-  public SqlCommand[]? columnDescriptions { get; set; }
+  public string tableName { get; set; }
+  public SqlCommand? createTable { get; set; }
+  public ICollection<SqlCommand> updateColumns { get; set; }
+  public ICollection<SqlCommand> updateConstraints { get; set; }
+  public ICollection<SqlCommand> dropConstraints { get; set; }
+  public ICollection<SqlCommand> createRelations { get; set; }
+  public ICollection<SqlCommand> setDescriptions { get; set; }
 
-  public static readonly SqlCommand[] PreparingCommands = [ new SqlCommand("SET ANSI_NULLS ON"), new SqlCommand("SET QUOTED_IDENTIFIER ON") ];
+  public TableCommand(string tableName)
+  {
+    this.tableName = tableName;
+    this.updateColumns = [];
+    this.updateConstraints = [];
+    this.dropConstraints = [];
+    this.createRelations = [];
+    this.setDescriptions = [];
+  }
+  public static readonly SqlCommand[] PreparingCommands = [ new SqlCommand("SET ANSI_NULLS ON;"), new SqlCommand("SET QUOTED_IDENTIFIER ON;") ];
 }
