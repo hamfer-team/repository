@@ -1,0 +1,21 @@
+using System.Text.RegularExpressions;
+
+namespace Hamfer.Repository.Utils;
+
+public static class SqlCommandTools
+{
+  public static bool IsSame(string? a, string? b)
+    => (a == null && b == null) || (a?.Equals(b, StringComparison.InvariantCultureIgnoreCase) ?? false);
+
+  public static string RemoveEscapeCharacters(string text)
+    => text.Replace("'", "").Replace("[", "").Replace("]", "");
+
+  public static string? RemoveDefaultValueCharacters(string? text)
+    => text != null ? Regex.Replace(text, @"(^\(\((?<value>.+)\)\)$|^\((?<value>.+)\)$)", match => match.Groups["value"].ToString()) : null;
+
+  public static string DbKeyForDefaultValue(string schema, string table, string column) => $"[DF_{schema}_{table}_{column}]";
+
+  public static string DbKeyForPrimaryKey(string schema, string table) => $"[PK_{schema}_{table}]";
+  
+  public static string DbKeyForUnique(string schema, string table, string key) => $"[IX_{schema}_{table}{(key == "" ? "" : "_" + key)}]";
+}
