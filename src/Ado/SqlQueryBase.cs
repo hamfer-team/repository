@@ -20,6 +20,7 @@ public class SqlQueryBase<TResult>
   private string? _whereStatement;
   private string? _groupbyStatement;
   private string? _orderbyStatement;
+  private string? _queryString;
 
   public SqlQueryBase(Func<SqlDataReader, TResult> readWrapper)
   {
@@ -64,24 +65,30 @@ public class SqlQueryBase<TResult>
 
   public string query
   {
-    get 
+    get
     {
-      StringBuilder sb = new();
+      if (_queryString == null)
+      {
+        StringBuilder sb = new();
 
-      sb.Append(_cteStatement)
-        .Append(' ')
-        .Append(_selectStatement)
-        .Append(' ')
-        .Append(_fromStatement)
-        .Append(' ')
-        .Append(_whereStatement)
-        .Append(' ')
-        .Append(_groupbyStatement)
-        .Append(' ')
-        .Append(_orderbyStatement);
+        sb.Append(_cteStatement)
+          .Append(' ')
+          .Append(_selectStatement)
+          .Append(' ')
+          .Append(_fromStatement)
+          .Append(' ')
+          .Append(_whereStatement)
+          .Append(' ')
+          .Append(_groupbyStatement)
+          .Append(' ')
+          .Append(_orderbyStatement);
 
-      return $"{sb.ToString().Trim()};";
+        this._queryString = $"{sb.ToString().Trim()};";
+      }
+      return this._queryString;
     }
+
+    set => this._queryString = value;
   }
 
   public Func<SqlDataReader, TResult> readWrapper { get; }
