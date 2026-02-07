@@ -58,18 +58,18 @@ public class SqlGeneralRepository
     return true;
   }
 
-  public IEnumerable<TResult> query<TResult>(SqlQueryBase<TResult> sqlQuery, params object[]? inputParams) where TResult: class
+  public IEnumerable<TResult> query<TResult>(SqlQueryBase<TResult> sqlQuery, params object[]? inputParams)
   {
     if (_connection.State != System.Data.ConnectionState.Open)
     {
       _connection.Open();
     }
 
-    var sqlCommand = new SqlCommand(sqlQuery.query, _connection);
+    SqlCommand sqlCommand = new(sqlQuery.query, _connection);
     if (inputParams != null) {
       for (int i = 0; i < inputParams.Length; i++)
       {
-        var inp = inputParams[i];
+        object inp = inputParams[i];
         sqlCommand.Parameters.AddWithValue($"@P{i + 1}", inp);
       }
     }
@@ -87,5 +87,24 @@ public class SqlGeneralRepository
     }
 
     return result;
+  }
+
+  public void execute(string sqlCommandText, params object[]? inputParams)
+  {
+    if (_connection.State != System.Data.ConnectionState.Open)
+    {
+      _connection.Open();
+    }
+
+    SqlCommand sqlCommand = new(sqlCommandText, _connection);
+    if (inputParams != null) {
+      for (int i = 0; i < inputParams.Length; i++)
+      {
+        object inp = inputParams[i];
+        sqlCommand.Parameters.AddWithValue($"@P{i + 1}", inp);
+      }
+    }
+
+    sqlCommand.ExecuteNonQuery();
   }
 }
