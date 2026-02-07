@@ -5,7 +5,6 @@ using Microsoft.Data.SqlClient;
 namespace Hamfer.Repository.Ado;
 
 public class SqlQueryBase<TResult>
-  where TResult : class
 {
   private const string SELECT_WORD = "SELECT";
   private const string FROM_WORD = "FROM";
