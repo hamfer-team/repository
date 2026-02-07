@@ -20,7 +20,7 @@ namespace Hamfer.Repository.Migration
   	    "(select c.[name], t.[name] [type], object_definition(c.default_object_id) [def], c.is_nullable, c.max_length, c.[precision], c.scale, c.is_identity, ic.seed_value, ic.increment_value, e.[value] [description] " +
   	    "from [sys].[columns] c " +
   		    "join [sys].[types] t on c.user_type_id = t.user_type_id " +
-  		    "left join [sys].[identity_columns] ic on c.[object_id] = ic.[object_id] and c.column_id = ic.column_id" +
+  		    "left join [sys].[identity_columns] ic on c.[object_id] = ic.[object_id] and c.column_id = ic.column_id " +
   		    "left join [sys].[extended_properties] e on e.major_id = c.[object_id] and e.minor_id = c.column_id and e.[name] = 'Description' " +
   	    "where c.[object_id] = o.[object_id] " +
   	    "for json path) colJson, " +
