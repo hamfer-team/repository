@@ -56,7 +56,7 @@ namespace Hamfer.Repository.Migration
       ICollection<TableCommand> tableCommands = [];
 
       TableInfosQuery sqlQuery = new();
-      string?[] schemas = [.. this.repository.query(new SchemasQuery())];
+      List<string?> schemas = [.. this.repository.query(new SchemasQuery())];
       IEnumerable<TableInfoQueryResult> queryResults = this.repository.query(sqlQuery);
 
       // Gather Table infoes from models of the assembly
@@ -77,6 +77,7 @@ namespace Hamfer.Repository.Migration
           if (tiEntity.schema != null && schemas.IndexOf(tiEntity.schema) < 0)
           {
             createSchemaCommand = new SqlCommand($"CREATE SCHEMA [{tiEntity.schema}];");
+            schemas.Add(tiEntity.schema);
           }
 
           TableInfoQueryResult? dbEntity = queryResults.SingleOrDefault(w =>
@@ -112,7 +113,8 @@ namespace Hamfer.Repository.Migration
       {
         if (tableCommand.createSchema != null)
         {
-          WriteCommand(sw, tableCommand.createSchema.CommandText, $"Create Schema command");
+          repository.execute(tableCommand.createSchema);
+          Console.WriteLine($"Also <{tableCommand.createSchema}> successfully executed.");
         }
 
         foreach (SqlCommand command in tableCommand.dropConstraints)
@@ -238,11 +240,13 @@ namespace Hamfer.Repository.Migration
       }
     }
 
-    private string? findLastMigration(Assembly assembly, string? path = null)
+    private static string? findLastMigration(Assembly assembly, string? path = null)
     {
       string migrationPath = prepareMigrationFolder(assembly, path, false);
       List<string> fileNames = [.. Directory.GetFiles(migrationPath)];
-      return fileNames.OrderDescending().FirstOrDefault();
+      string? lastMigration = fileNames.OrderDescending().FirstOrDefault();
+      Console.WriteLine($"📄✅ Script-file {lastMigration} selected!");
+      return lastMigration;
     }
 
     private static string prepareMigrationFolder(Assembly assembly, string? path = null, bool withCreate = true)

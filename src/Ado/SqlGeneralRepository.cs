@@ -107,4 +107,6 @@ public class SqlGeneralRepository
 
     sqlCommand.ExecuteNonQuery();
   }
+
+  public void execute(SqlCommand sqlCommand, params object[]? inputParams) => execute(sqlCommand.CommandText, inputParams);
 }
