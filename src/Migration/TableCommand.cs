@@ -5,6 +5,7 @@ namespace Hamfer.Repository.Migration;
 public sealed class TableCommand
 {
   public string tableName { get; set; }
+  public SqlCommand? createSchema { get; set; }
   public SqlCommand? createTable { get; set; }
   public ICollection<SqlCommand> updateColumns { get; set; }
   public ICollection<SqlCommand> updateConstraints { get; set; }

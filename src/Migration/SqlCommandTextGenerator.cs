@@ -122,7 +122,7 @@ public sealed class SqlCommandTextGenerator
       string columnsString = columnStrings.Aggregate((a, b) => $"{a},{nl}\t{b}");
 
       string primaryKeysString = sti.primaryKeys!.Select(spk => $"[{RemoveEscapeCharacters(spk)}]").Aggregate((a, b) => $"{a}, {b}");
-      string primaryKeyString = $",{nl}\tCONSTRAINT [PK_{schema}_{table}] PRIMARY KEY CLUSTERED ({primaryKeysString})";
+      string primaryKeyString = $",{nl}\tCONSTRAINT {DbKeyForPrimaryKey(schema, table)} PRIMARY KEY CLUSTERED ({primaryKeysString})";
 
       
       string uniqueConstraintString = "";
@@ -131,11 +131,11 @@ public sealed class SqlCommandTextGenerator
         {
           string uniquesString = unique.Value.Select(u => $"[{RemoveEscapeCharacters(u)}]").Aggregate((a, b) => $"{a}, {b}");
           string key = unique.Key != "" ? $"_{unique.Key}" : "";
-          uniqueConstraintString = $",{nl}\tCONSTRAINT [IX_{schema}_{table}{key}] UNIQUE NONCLUSTERED ({uniquesString})";
+          uniqueConstraintString = $",{nl}\tCONSTRAINT {DbKeyForUnique(schema, table, key)} UNIQUE NONCLUSTERED ({uniquesString})";
         }
       }
 
-      tableCommand.createTable = new($"CREATE TABLE [{tableFullName}] ({nl}\t{columnsString}{primaryKeyString}{uniqueConstraintString}{nl});");
+      tableCommand.createTable = new($"CREATE TABLE {tableFullName} ({nl}\t{columnsString}{primaryKeyString}{uniqueConstraintString}{nl});");
     }
 
     SqlCommand? descriptionCommand = sti.description != null 

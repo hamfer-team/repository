@@ -1,6 +1,4 @@
 ﻿using System.Reflection;
-using System.Text;
-using System.Text.Json;
 using Hamfer.Kernel.Errors;
 using Hamfer.Kernel.Utils;
 using Hamfer.Repository.Ado;
@@ -15,6 +13,8 @@ namespace Hamfer.Repository.Migration
 {
   public sealed class AdoSqlDatabaseContextMigrator
   {
+    const string MIGRATION_FILES_FOLDER_NAME_DEFAULT = "migrations";
+
     readonly string connectionString;
     readonly SqlConnection serverConnection;
     readonly bool serverIsValid;
@@ -51,20 +51,18 @@ namespace Hamfer.Repository.Migration
       }
     }
 
-    public async Task generateMigration(Assembly assembly, string? title = null, string? path = null, bool removeOldDb = false)
+    public async Task generateMigration(Assembly assembly, string? title = null, string? path = null)
     {
-      // Create Database if not exists
-      await this.createDatabase(removeOldDb);
+      ICollection<TableCommand> tableCommands = [];
 
-      var sqlQuery = new TableInfosQuery();
+      TableInfosQuery sqlQuery = new();
+      string?[] schemas = [.. this.repository.query(new SchemasQuery())];
       IEnumerable<TableInfoQueryResult> queryResults = this.repository.query(sqlQuery);
 
       // Gather Table infoes from models of the assembly
       #region Gather current models info from assembly and database
       Type[] types = assembly.GetTypes();
-      ICollection<TableCommand> tableCommands = [];
 
-      List<SqlTableInfo> tableInfos = [];
       foreach (Type type in types)
       {
         if (ReferenceTypeHelper.IsDerivedOfGenericInterface(type, typeof(IRepositoryEntity<>)))
@@ -75,62 +73,30 @@ namespace Hamfer.Repository.Migration
             continue;
           }
 
-          tableInfos.Add(tiEntity);
+          SqlCommand? createSchemaCommand = null;
+          if (tiEntity.schema != null && schemas.IndexOf(tiEntity.schema) < 0)
+          {
+            createSchemaCommand = new SqlCommand($"CREATE SCHEMA [{tiEntity.schema}];");
+          }
 
           TableInfoQueryResult? dbEntity = queryResults.SingleOrDefault(w =>
             (w.schema?.Equals(tiEntity.schema, StringComparison.InvariantCultureIgnoreCase) ?? false) &&
             (w.name?.Equals(tiEntity.name, StringComparison.InvariantCultureIgnoreCase) ?? false));
         
-          tableCommands.Add(SqlCommandTextGenerator.GenerateTableCommandsBy(tiEntity, type.Name, dbEntity));
+          TableCommand tableCommand = SqlCommandTextGenerator.GenerateTableCommandsBy(tiEntity, type.Name, dbEntity);
+          tableCommand.createSchema = createSchemaCommand;
+          tableCommands.Add(tableCommand);
         }
       }
       #endregion
 
-      // Create migrations folder
-      # region folder & raw files
-      string assemblyCodePath = Path.GetDirectoryName(assembly.Location) ?? "";
-      string pathSep = Path.DirectorySeparatorChar.ToString();
-      int binIx = assemblyCodePath.IndexOf($@"{pathSep}bin{pathSep}");
-      if (binIx > 0)
-      {
-        assemblyCodePath = assemblyCodePath[..binIx];
-      }
-
-      string migrationsPath = Path.Join(assemblyCodePath, path ?? "migrations");
-      string migrationsRawPath = Path.Join(migrationsPath, "raw");
-      if (!Path.Exists(migrationsPath))
-      {
-        Directory.CreateDirectory(migrationsPath);
-      }
-      if (!Path.Exists(migrationsRawPath))
-      {
-        DirectoryInfo di = Directory.CreateDirectory(migrationsRawPath);
-        di.Attributes |= FileAttributes.Hidden;
-      }
-
-      // Create raw file
-      string? timePart = DateTime.Now.ToPersianString("{0:0000}{1:00}{2:00}{3:00}{4:00}{5:00}{6:0000}");
-      string snapshotFileName = $"{timePart}_{title ?? ".raw"}";
-      string snapshotFile = Path.Join(migrationsRawPath, snapshotFileName);
-      using (StreamWriter ssw = new(snapshotFile, true))
-      {
-        foreach (SqlTableInfo tableInfo in tableInfos)
-        {
-          string uglyfied = JsonSerializer.Serialize(tableInfo)
-            .Replace("\"schema\":","s:").Replace("\"name\":","n:").Replace("\"columns\":","c:")
-            .Replace("\"defaultValue\":","v:").Replace("\"defaultValueText\":","w:").Replace("\"dbType\":","t:").Replace("\"sqlDbTypeText\":","T:")
-            .Replace("\"charMaxLength\":","x:").Replace("\"numericPrecision\":","p:").Replace("\"numericScale\":","l:").Replace("\"timeScale\":","m:")
-            .Replace("\"isNullable\":","_:").Replace("\"identitySeed\":","q:").Replace("\"identityIncrement\":","i:").Replace("\"description\":","d:")
-            .Replace("\"primaryKeys\":","k:").Replace("\"uniqueConstraints\":","u:").Replace("\"relations\":","r:");
-          ssw.WriteLine(Convert.ToBase64String(Encoding.UTF8.GetBytes(uglyfied)));
-        }
-      }
-
-      #endregion
-    
       // Create migration file
+      string migrationsPath = prepareMigrationFolder(assembly, path);
+
+      string? timePart = DateTime.Now.ToPersianString("{0:0000}{1:00}{2:00}{3:00}{4:00}{5:00}{6:0000}");
       string fileName = $"{timePart}_{title ?? "migration.sql"}";
       string file = Path.Join(migrationsPath, fileName);
+
       using StreamWriter sw = new(file, true);
 
       sw.WriteLine("BEGIN TRY");
@@ -144,6 +110,11 @@ namespace Hamfer.Repository.Migration
 
       foreach (TableCommand tableCommand in tableCommands)
       {
+        if (tableCommand.createSchema != null)
+        {
+          WriteCommand(sw, tableCommand.createSchema.CommandText, $"Create Schema command");
+        }
+
         foreach (SqlCommand command in tableCommand.dropConstraints)
         {
           WriteCommand(sw, command.CommandText, $"Drop Constraints command");
@@ -191,12 +162,16 @@ namespace Hamfer.Repository.Migration
       sw.WriteLine();
       sw.WriteLine("END CATCH");
 
-      Console.WriteLine($"📄✅ Script-file ${fileName} created successfully ${migrationsPath}");
+      Console.WriteLine($"📄✅ Script-file {fileName} created successfully {migrationsPath}");
     }
 
-    public async Task updateDatabase()
+    public async Task updateDatabase(Assembly assembly, string? path = null)
     {
-      // TODO
+      string lastMigration = findLastMigration(assembly, path) 
+        ?? throw new RepositoryError($"Migration file not found!");
+      string sqlCommandText = await File.ReadAllTextAsync(lastMigration);
+
+      repository.execute(sqlCommandText);
     }
 
     public async Task migrate(string[]? args)
@@ -245,20 +220,48 @@ namespace Hamfer.Repository.Migration
     
       if (assembly != null)
       {
+        await this.createDatabase(removeOldDb);
+
         if (!updateDatabase)
         {
-          await this.generateMigration(assembly, migrationTitle, migrationPath, removeOldDb);
+          await this.generateMigration(assembly, migrationTitle, migrationPath);
         }
 
         if (!generateOnly)
         {
-          await this.updateDatabase();
+          await this.updateDatabase(assembly, migrationPath);
         }
       }
       else
       {
         throw new RepositoryError("در فراخوانی اسمبلی درخواست‌کننده مشکلی وجود دارد!");
       }
+    }
+
+    private string? findLastMigration(Assembly assembly, string? path = null)
+    {
+      string migrationPath = prepareMigrationFolder(assembly, path, false);
+      List<string> fileNames = [.. Directory.GetFiles(migrationPath)];
+      return fileNames.OrderDescending().FirstOrDefault();
+    }
+
+    private static string prepareMigrationFolder(Assembly assembly, string? path = null, bool withCreate = true)
+    {
+      string assemblyCodePath = Path.GetDirectoryName(assembly.Location) ?? "";
+      string pathSep = Path.DirectorySeparatorChar.ToString();
+      int binIx = assemblyCodePath.IndexOf($@"{pathSep}bin{pathSep}");
+      if (binIx > 0)
+      {
+        assemblyCodePath = assemblyCodePath[..binIx];
+      }
+
+      string migrationsPath = Path.Join(assemblyCodePath, path ?? MIGRATION_FILES_FOLDER_NAME_DEFAULT);
+      if (!Path.Exists(migrationsPath) && withCreate)
+      {
+        Directory.CreateDirectory(migrationsPath);
+      }
+
+      return migrationsPath;
     }
 
     private static void WriteCommand(StreamWriter sw, string commandText, string? comment = null)
