@@ -164,7 +164,7 @@ namespace Hamfer.Repository.Migration
       sw.WriteLine();
       sw.WriteLine("END CATCH");
 
-      Console.WriteLine($"📄✅ Script-file {fileName} created successfully {migrationsPath}");
+      Console.WriteLine($"📄✅ Script-file {fileName} created successfully @{migrationsPath}.");
     }
 
     public async Task updateDatabase(Assembly assembly, string? path = null)
@@ -172,8 +172,15 @@ namespace Hamfer.Repository.Migration
       string lastMigration = findLastMigration(assembly, path) 
         ?? throw new RepositoryError($"Migration file not found!");
       string sqlCommandText = await File.ReadAllTextAsync(lastMigration);
-
-      repository.execute(sqlCommandText);
+      try
+      {
+        repository.execute(sqlCommandText);
+        Console.WriteLine($"'🔆✅ Database updated successfully.");
+      }
+      catch (Exception ex)
+      {
+        throw new RepositoryError("Error in executing Script-file.", ex);
+      }
     }
 
     public async Task migrate(string[]? args)
