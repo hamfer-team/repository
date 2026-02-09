@@ -1,18 +1,24 @@
 ﻿using System.Reflection;
 using System.Text;
+using Hamfer.Kernel.Errors;
+using Hamfer.Kernel.Utils;
 using Hamfer.Repository.Entity;
 using Microsoft.Data.SqlClient;
 
 namespace Hamfer.Repository.Services;
 
-public class RepositorySqlCommandHelper<TEntity>
-  where TEntity : class, IRepositoryEntity<TEntity>
+public class RepositorySqlCommandHelper
 {
-  private PropertyInfo[] _properties;
+  private readonly PropertyInfo[] properties;
 
-  public RepositorySqlCommandHelper()
+  public RepositorySqlCommandHelper(Type entityType)
   {
-    _properties = typeof(TEntity).GetProperties();
+    if (!ReferenceTypeHelper.IsDerivedOfGenericInterface(entityType, typeof(IRepositoryEntity<>)))
+    {
+      throw new RepositoryError("The `entityType` must implements `IRepositoryEntity<entityType>`.");
+    }
+
+    this.properties = entityType.GetProperties();
   }
 
   /// <summary>
@@ -21,9 +27,9 @@ public class RepositorySqlCommandHelper<TEntity>
   /// <returns></returns>
   public string generateFieldValuesPattern()
   {
-    var sb = new StringBuilder();
+    StringBuilder sb = new();
 
-    foreach (var prop in _properties)
+    foreach (PropertyInfo prop in properties)
     {
       // We don't use a readonly property ;)
       if (prop.CanWrite)
@@ -46,9 +52,9 @@ public class RepositorySqlCommandHelper<TEntity>
   /// <returns></returns>
   public string generateFieldAndValuesPattern(List<string>? exceptions = null)
   {
-    var sb = new StringBuilder();
+    StringBuilder sb = new();
 
-    foreach (var prop in _properties)
+    foreach (PropertyInfo prop in properties)
     {
       if (exceptions != null && exceptions.Contains(prop.Name))
       {
@@ -69,14 +75,23 @@ public class RepositorySqlCommandHelper<TEntity>
     return sb.ToString();
   }
 
-  public void applyFieldParameters(SqlCommand command, TEntity? entity)
+  public void applyFieldParameters<TEntity>(SqlCommand command, TEntity? entity)
+    where TEntity : class, IRepositoryEntity<TEntity>
   {
-    foreach (var prop in _properties)
+    foreach (PropertyInfo prop in properties)
     {
-      var name = prop.Name.ToLower();
-      var value = prop.GetValue(entity, null) ?? DBNull.Value;
+      string name = prop.Name.ToLower();
+      object? value = prop.GetValue(entity, null) ?? DBNull.Value;
 
       command.Parameters.AddWithValue(name, value);
     }
   }
   }
+
+public class RepositorySqlCommandHelper<TEntity> : RepositorySqlCommandHelper
+  where TEntity : class, IRepositoryEntity<TEntity>
+{
+  public RepositorySqlCommandHelper(): base(typeof(TEntity))
+  {
+  }
+}
