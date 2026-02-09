@@ -43,4 +43,12 @@ public abstract class DatabaseUnitOfWorkBase : IDatabaseUnitOfWork
     DatabaseUnitOfWorkTransaction transaction = new(sqlCommand, state);
     this.transactionsQueue.Enqueue(transaction);
   }
+
+  public void addToQueue(SqlCommand[] sqlCommands, DatabaseTransactionState state = DatabaseTransactionState.Initiated)
+  {
+    foreach (SqlCommand sqlCommand in sqlCommands)
+    {
+      this.addToQueue(sqlCommand);
+    }
+  }
 }

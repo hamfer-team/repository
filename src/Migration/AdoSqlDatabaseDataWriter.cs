@@ -9,14 +9,14 @@ namespace Hamfer.Repository.Migration;
 
 public sealed class AdoSqlDatabaseDataWriter
 {
-  readonly SqlGeneralRepository repository;
+  private readonly SqlGeneralUnitOfWork unitOfWork;
   
   public AdoSqlDatabaseDataWriter(string connectionString)
   {
-    this.repository = new SqlGeneralRepository(connectionString);
+    this.unitOfWork = new SqlGeneralUnitOfWork(connectionString);
   }
 
-  public async Task seed(string[]? args)
+  public async Task seed()
   {
     Assembly? assembly = Assembly.GetEntryAssembly();
 
@@ -38,29 +38,41 @@ public sealed class AdoSqlDatabaseDataWriter
     {
       if (ReferenceTypeHelper.IsDerivedOfGenericInterface(type, typeof(IRepositorySeedData)))
       {
-        SqlCommand? preCommand = (SqlCommand?)type.GetProperty(nameof(IRepositorySeedData.preCommand))?.GetValue(type);
-        SqlCommand? postCommand = (SqlCommand?)type.GetProperty(nameof(IRepositorySeedData.postCommand))?.GetValue(type);
-        IEnumerable<IRepositoryEntity>? seedEntities = (IEnumerable<IRepositoryEntity>?)type.GetProperty(nameof(IRepositorySeedData.SeedEntities))?.GetValue(type);
+        dynamic? seedData = Activator.CreateInstance(type);
+
+        SqlCommand? preCommand = seedData?.preCommand;
+        SqlCommand? postCommand = seedData?.postCommand;
+        IEnumerable<IRepositoryEntity>? seedEntities = (IEnumerable<IRepositoryEntity>?)type.GetField(nameof(IRepositorySeedData.SeedEntities))?.GetValue(seedData);
 
         if (preCommand != null)
         {
-          this.repository.execute(preCommand);
+          this.unitOfWork.addToQueue(preCommand);
         }
 
         if (seedEntities != null)
         {
-          SqlCommand[]? seedCommand = SqlCommandTextGenerator.GenerateSeedCommandFor(seedEntities);
-          if (seedCommand != null)
+          SqlCommand[]? seedCommands = SqlCommandTextGenerator.GenerateSeedCommandFor(seedEntities);
+          if (seedCommands != null)
           {
-            // TODO
+            this.unitOfWork.addToQueue(seedCommands);
           }
         }
 
         if (postCommand != null)
         {
-          this.repository.execute(postCommand);
+          this.unitOfWork.addToQueue(postCommand);
         }
       }
+    }
+
+    try
+    {
+      await this.unitOfWork.commit();
+    }
+    catch (Exception)
+    {
+      await this.unitOfWork.rollBack();
+      throw;
     }
   }
 }
