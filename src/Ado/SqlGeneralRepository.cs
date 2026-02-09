@@ -5,22 +5,22 @@ namespace Hamfer.Repository.Ado;
 
 public class SqlGeneralRepository
 {
-  protected SqlConnection _connection { get; private set; }
+  protected SqlConnection connection { get; private set; }
 
   public SqlGeneralRepository(string? connectionString)
   {
     LetsVerify.On().Assert(connectionString, "متن ارتباط با پایگاه داده").NotNullOrEmpty().ThenThrowErrors();
 
-    _connection = new SqlConnection(connectionString);
+    connection = new SqlConnection(connectionString);
   }
 
   public bool validate()
   {
-    if (_connection.State != System.Data.ConnectionState.Open)
+    if (connection.State != System.Data.ConnectionState.Open)
     {
       try
       {
-        _connection.Open();
+        connection.Open();
       }
       catch (Exception ex)
       {
@@ -35,12 +35,12 @@ public class SqlGeneralRepository
 
   public bool validateServer(out SqlConnection connection)
   {
-    connection = _connection;
-    if (_connection.State != System.Data.ConnectionState.Open)
+    connection = this.connection;
+    if (this.connection.State != System.Data.ConnectionState.Open)
     {
       try
       {
-        SqlConnectionStringBuilder scsb = new() { ConnectionString = _connection.ConnectionString };
+        SqlConnectionStringBuilder scsb = new() { ConnectionString = this.connection.ConnectionString };
           
         scsb.InitialCatalog = "master";
         connection = new (scsb.ToString());
@@ -60,12 +60,12 @@ public class SqlGeneralRepository
 
   public IEnumerable<TResult> query<TResult>(SqlQueryBase<TResult> sqlQuery, params object[]? inputParams)
   {
-    if (_connection.State != System.Data.ConnectionState.Open)
+    if (connection.State != System.Data.ConnectionState.Open)
     {
-      _connection.Open();
+      connection.Open();
     }
 
-    SqlCommand sqlCommand = new(sqlQuery.query, _connection);
+    SqlCommand sqlCommand = new(sqlQuery.query, connection);
     if (inputParams != null) {
       for (int i = 0; i < inputParams.Length; i++)
       {
@@ -91,12 +91,12 @@ public class SqlGeneralRepository
 
   public void execute(string sqlCommandText, params object[]? inputParams)
   {
-    if (_connection.State != System.Data.ConnectionState.Open)
+    if (connection.State != System.Data.ConnectionState.Open)
     {
-      _connection.Open();
+      connection.Open();
     }
 
-    SqlCommand sqlCommand = new(sqlCommandText, _connection);
+    SqlCommand sqlCommand = new(sqlCommandText, connection);
     if (inputParams != null) {
       for (int i = 0; i < inputParams.Length; i++)
       {

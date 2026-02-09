@@ -10,21 +10,21 @@ namespace Hamfer.Repository.Duow;
 public abstract class RepositoryEntityUnitOfWorkBase<TEntity> : IRepositoryEntityUnitOfWork<TEntity>
   where TEntity : class, IRepositoryEntity<TEntity>
 {
-  protected SqlConnection _connection { get; }
+  protected SqlConnection connection { get; }
   protected string databaseName { get; }
   protected string schemaName { get; }
   protected string tableName { get; }
 
-  protected Func<SqlDataReader, TEntity> _readWrapper { get; }
+  protected Func<SqlDataReader, TEntity> readWrapper { get; }
   protected ICollection<TEntity>? currentRecordset { get; private set; }
   protected IDictionary<Guid, RepositoryEntityRecordState> currentRecordsetStates { get; private set; }
   protected RepositoryEntityUnitOfWorkQeue<TEntity> transactionsQueue { get; private set; }
 
   protected RepositoryEntityUnitOfWorkBase(string connectionString, Func<SqlDataReader, TEntity> readWrapper)
   {
-    this._connection = new SqlConnection(connectionString);
-    this.databaseName = this._connection.Database;
-    this._readWrapper = readWrapper;
+    this.connection = new SqlConnection(connectionString);
+    this.databaseName = this.connection.Database;
+    this.readWrapper = readWrapper;
 
     var (schema, table) = RepositoryEntityHelper.GetSchemaAndTable<TEntity>();
     this.schemaName = schema ?? "dbo";
@@ -32,7 +32,7 @@ public abstract class RepositoryEntityUnitOfWorkBase<TEntity> : IRepositoryEntit
 
     this. currentRecordsetStates = new Dictionary<Guid, RepositoryEntityRecordState>();
     this.transactionsQueue = new RepositoryEntityUnitOfWorkQeue<TEntity>();
-    this._connection.Open();
+    this.connection.Open();
     getDatabaseContext().Wait();
   }
 

@@ -13,23 +13,23 @@ namespace Hamfer.Repository.Ado;
 public abstract class SqlServerRepositoryEntityUnitOfWorkBase<TEntity> : RepositoryEntityUnitOfWorkBase<TEntity>
 where TEntity : class, IRepositoryEntity<TEntity>
 {
-  protected SqlTransaction? _transaction { get; private set; }
-  protected RepositorySqlCommandHelper<TEntity> _CommandHelper { get; }
+  protected SqlTransaction? sqlTransaction { get; private set; }
+  protected RepositorySqlCommandHelper<TEntity> commandHelper { get; }
 
   public SqlServerRepositoryEntityUnitOfWorkBase(string connectionString, Func<SqlDataReader, TEntity> readWrapper)
     : base(connectionString, readWrapper)
   {
-    this._CommandHelper = new RepositorySqlCommandHelper<TEntity>();
+    this.commandHelper = new RepositorySqlCommandHelper<TEntity>();
   }
 
   public override void Dispose()
   {
-    if (this._connection.State != ConnectionState.Closed)
+    if (this.connection.State != ConnectionState.Closed)
     {
-      this._connection.Close();
+      this.connection.Close();
     }
 
-    this._connection?.Dispose();
+    this.connection?.Dispose();
   }
 
   public override ICollection<TEntity>? getCurrentRecordSet(IRepositoryPaginationConfiguration<TEntity>? config)
@@ -91,11 +91,11 @@ where TEntity : class, IRepositoryEntity<TEntity>
 
   protected override async Task writeToDatabase(RepositoryEntityUnitOfWorkQeue<TEntity> transactions)
   {
-    _transaction = _connection.BeginTransaction(IsolationLevel.Serializable, "UnitOfworkTransaction");
+    sqlTransaction = connection.BeginTransaction(IsolationLevel.Serializable, "UnitOfworkTransaction");
     SqlCommand command = new()
     { 
-      Connection = _connection,
-      Transaction = _transaction
+      Connection = connection,
+      Transaction = sqlTransaction
     };
 
     try
@@ -129,13 +129,13 @@ where TEntity : class, IRepositoryEntity<TEntity>
         }
       }
 
-      _transaction?.Commit();
+      sqlTransaction?.Commit();
     }
     catch (Exception commitException)
     {
       try
       {
-        _transaction?.Rollback();
+        sqlTransaction?.Rollback();
       }
       catch (Exception rollbackException)
       {
@@ -161,11 +161,11 @@ where TEntity : class, IRepositoryEntity<TEntity>
   private async Task callCreateCommandBy(TEntity? entity, SqlCommand command)
   {
     // TODO
-    var fields = _CommandHelper.generateFieldValuesPattern();
+    var fields = commandHelper.generateFieldValuesPattern();
     var values = fields.Replace("]", "").Replace('[', '@');
     command.CommandText = $"INSERT INTO [{base.schemaName}].[{base.tableName}] ({fields}) VALUES ({values.ToLower()});";
 
-    _CommandHelper.applyFieldParameters(command, entity);
+    commandHelper.applyFieldParameters(command, entity);
 
     await command.ExecuteNonQueryAsync();
   }
@@ -173,7 +173,7 @@ where TEntity : class, IRepositoryEntity<TEntity>
   // R: Read
   private async Task<IEnumerable<TEntity>> callReadCommad()
   {
-    SqlCommand command = new($"SELECT * FROM [{base.schemaName}].[{base.tableName}]", _connection);
+    SqlCommand command = new($"SELECT * FROM [{base.schemaName}].[{base.tableName}]", connection);
 
     ICollection<TEntity> result = [];
     using (SqlDataReader reader = await command.ExecuteReaderAsync())
@@ -182,7 +182,7 @@ where TEntity : class, IRepositoryEntity<TEntity>
       {
         while (reader.Read())
           {
-            TEntity record = _readWrapper(reader);
+            TEntity record = readWrapper(reader);
             result.Add(record);
           }
       }
@@ -195,10 +195,10 @@ where TEntity : class, IRepositoryEntity<TEntity>
   private async Task callUpdateCommandBy(TEntity? entity, SqlCommand command)
   {
     // TODO
-    var fieldAndValuesPattern = _CommandHelper.generateFieldAndValuesPattern([nameof(IRepositoryEntity<>.id)]);
+    var fieldAndValuesPattern = commandHelper.generateFieldAndValuesPattern([nameof(IRepositoryEntity<>.id)]);
     command.CommandText = $"UPDATE [{base.schemaName}].[{base.tableName}] SET {fieldAndValuesPattern} WHERE Id=@id;";
     
-    _CommandHelper.applyFieldParameters(command, entity);
+    commandHelper.applyFieldParameters(command, entity);
 
     await command.ExecuteNonQueryAsync();
   }

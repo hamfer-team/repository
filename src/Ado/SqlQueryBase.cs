@@ -13,13 +13,13 @@ public class SqlQueryBase<TResult>
   private const string ORDER_BY_WORD = "ORDER BY";
   private const string CTE_WORD = "WITH";
 
-  private string? _cteStatement;
-  private string? _selectStatement;
-  private string? _fromStatement;
-  private string? _whereStatement;
-  private string? _groupbyStatement;
-  private string? _orderbyStatement;
-  private string? _queryString;
+  private string? cteStatement;
+  private string? selectStatement;
+  private string? fromStatement;
+  private string? whereStatement;
+  private string? groupbyStatement;
+  private string? orderbyStatement;
+  private string? queryString;
 
   public SqlQueryBase(Func<SqlDataReader, TResult> readWrapper)
   {
@@ -28,37 +28,37 @@ public class SqlQueryBase<TResult>
 
   public SqlQueryBase<TResult> addSelect(string selectStatement)
   {
-    _selectStatement = addMissedStartingWord(selectStatement, SELECT_WORD);
+    this.selectStatement = addMissedStartingWord(selectStatement, SELECT_WORD);
     return this;
   }
 
   public SqlQueryBase<TResult> addFrom(string fromStatement)
   {
-    _fromStatement = addMissedStartingWord(fromStatement, FROM_WORD);
+    this.fromStatement = addMissedStartingWord(fromStatement, FROM_WORD);
     return this;
   }
 
   public SqlQueryBase<TResult> addWhere(string whereStatement)
   {
-    _whereStatement = addMissedStartingWord(whereStatement, WHERE_WORD);
+    this.whereStatement = addMissedStartingWord(whereStatement, WHERE_WORD);
     return this;
   }
 
   public SqlQueryBase<TResult> addGroupBy(string groupbyStatement)
   {
-    _groupbyStatement = addMissedStartingWord(groupbyStatement, GROUP_BY_WORD);
+    this.groupbyStatement = addMissedStartingWord(groupbyStatement, GROUP_BY_WORD);
     return this;
   }
 
   public SqlQueryBase<TResult> addOrderBy(string orderbyStatement)
   {
-    _orderbyStatement = addMissedStartingWord(orderbyStatement, ORDER_BY_WORD);
+    this.orderbyStatement = addMissedStartingWord(orderbyStatement, ORDER_BY_WORD);
     return this;
   }
 
   public SqlQueryBase<TResult> addCte(string cteStatement)
   {
-    _cteStatement = addMissedStartingWord(cteStatement, CTE_WORD);
+    this.cteStatement = addMissedStartingWord(cteStatement, CTE_WORD);
     return this;
   }
 
@@ -66,28 +66,28 @@ public class SqlQueryBase<TResult>
   {
     get
     {
-      if (_queryString == null)
+      if (queryString == null)
       {
         StringBuilder sb = new();
 
-        sb.Append(_cteStatement)
+        sb.Append(cteStatement)
           .Append(' ')
-          .Append(_selectStatement)
+          .Append(selectStatement)
           .Append(' ')
-          .Append(_fromStatement)
+          .Append(fromStatement)
           .Append(' ')
-          .Append(_whereStatement)
+          .Append(whereStatement)
           .Append(' ')
-          .Append(_groupbyStatement)
+          .Append(groupbyStatement)
           .Append(' ')
-          .Append(_orderbyStatement);
+          .Append(orderbyStatement);
 
-        this._queryString = $"{sb.ToString().Trim()};";
+        this.queryString = $"{sb.ToString().Trim()};";
       }
-      return this._queryString;
+      return this.queryString;
     }
 
-    set => this._queryString = value;
+    set => this.queryString = value;
   }
 
   public Func<SqlDataReader, TResult> readWrapper { get; }
