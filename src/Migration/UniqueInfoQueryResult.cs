@@ -1,6 +1,6 @@
 namespace Hamfer.Repository.Migration
 {
-  sealed class UniqueInfoQueryResult
+  internal sealed class UniqueInfoQueryResult
   {
     public string? key;
     public bool? is_primary_key;

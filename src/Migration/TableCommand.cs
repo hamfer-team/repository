@@ -2,7 +2,7 @@ using Microsoft.Data.SqlClient;
 
 namespace Hamfer.Repository.Migration;
 
-public sealed class TableCommand
+internal sealed class TableCommand
 {
   public string tableName { get; set; }
   public SqlCommand? createSchema { get; set; }

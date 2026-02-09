@@ -1,6 +1,6 @@
 namespace Hamfer.Repository.Migration
 {
-  public sealed class ColumnInfoQueryResult
+  internal sealed class ColumnInfoQueryResult
   {
     public string? name;
     public string? type;

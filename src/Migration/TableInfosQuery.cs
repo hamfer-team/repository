@@ -3,7 +3,7 @@ using Hamfer.Repository.Utils;
 
 namespace Hamfer.Repository.Migration
 {
-  public sealed class TableInfosQuery : SqlQueryBase<TableInfoQueryResult>
+  internal sealed class TableInfosQuery : SqlQueryBase<TableInfoQueryResult>
   {
     public TableInfosQuery() : base(reader =>
     {

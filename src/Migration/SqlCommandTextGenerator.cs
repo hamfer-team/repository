@@ -1,3 +1,4 @@
+using Hamfer.Repository.Entity;
 using Hamfer.Repository.Models;
 using Hamfer.Verification.Errors;
 using Microsoft.Data.SqlClient;
@@ -5,9 +6,9 @@ using static Hamfer.Repository.Utils.SqlCommandTools;
 
 namespace Hamfer.Repository.Migration;
 
-public sealed class SqlCommandTextGenerator
+internal sealed class SqlCommandTextGenerator
 {
-  public static TableCommand GenerateTableCommandsBy(SqlTableInfo sti, string? name = null, SqlTableInfo? dbti = null)
+  internal static TableCommand GenerateTableCommandsBy(SqlTableInfo sti, string? name = null, SqlTableInfo? dbti = null)
   {
     // https://docs.microsoft.com/en-us/sql/t-sql/statements/create-table-transact-sql?view=sql-server-ver15
 
@@ -148,6 +149,14 @@ public sealed class SqlCommandTextGenerator
     // TODO: add relations
 
     return tableCommand;
+  }
+
+  internal static SqlCommand[]? GenerateSeedCommandFor(IEnumerable<IRepositoryEntity> seedEntities)
+  {
+    Console.WriteLine($"🧡 ");
+
+    return null;
+    // throw new NotImplementedException();
   }
 
   private static void VerifyTableInfo(SqlTableInfo sti, string? name = null)

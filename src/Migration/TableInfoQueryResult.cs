@@ -4,7 +4,7 @@ using Hamfer.Repository.Models;
 
 namespace Hamfer.Repository.Migration
 {
-  public sealed class TableInfoQueryResult : SqlTableInfo
+  internal sealed class TableInfoQueryResult : SqlTableInfo
   {
     public TableInfoQueryResult(string? schema, string? table, string? description, string? colJson, string? ixJson)
     {
