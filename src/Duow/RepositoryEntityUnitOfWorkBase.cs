@@ -33,7 +33,7 @@ public abstract class RepositoryEntityUnitOfWorkBase<TEntity> : IRepositoryEntit
     this. currentRecordsetStates = new Dictionary<Guid, RepositoryEntityRecordState>();
     this.transactionsQueue = new RepositoryEntityUnitOfWorkQeue<TEntity>();
     this._connection.Open();
-    getDatabaseContext();
+    getDatabaseContext().Wait();
   }
 
   protected abstract Task<IEnumerable<TEntity>> readFromDatabase();

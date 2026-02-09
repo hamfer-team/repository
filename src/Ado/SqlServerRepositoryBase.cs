@@ -17,7 +17,7 @@ public abstract class SqlServerRepositoryBase<TEntity>
 
   protected SqlServerRepositoryBase(string connectionString, Func<SqlDataReader, TEntity> readWrapper)
   {
-    databaseContext = new SqlServerDatabaseGenericUnitOfWork<TEntity>(connectionString, readWrapper);
+    databaseContext = new SqlServerRepositoryEntityUnitOfWork<TEntity>(connectionString, readWrapper);
   }
 
   public virtual IEnumerable<TEntity>? findManyBy(IRepositoryPaginationConfiguration<TEntity>? config = null)
@@ -76,11 +76,11 @@ public abstract class SqlServerRepositoryBase<TEntity>
     }
   }
 
-  public virtual void Commit()
-    => databaseContext.commit();
+  public virtual async Task Commit()
+    => await databaseContext.commit();
 
-  public virtual void rollBack()
-    => databaseContext.rollBack();
+  public virtual async Task rollBack()
+    => await databaseContext.rollBack();
 
   public virtual bool tryDelete(Guid entityId, out RepositoryError? error)
     => tryAction(deleteLater, entityId, out error);
@@ -100,7 +100,7 @@ public abstract class SqlServerRepositoryBase<TEntity>
     try
     {
       action.Invoke(input);
-      Commit();
+      Commit().Wait();
 
       return true;
     }
