@@ -1,17 +1,31 @@
 ﻿using Hamfer.Repository.Data;
-using Hamfer.Repository.Entity;
+using Microsoft.Data.SqlClient;
 
 namespace Hamfer.Repository.Duow;
 
-public class DatabaseUnitOfWorkTransaction<TEntity>
-  where TEntity : class, IRepositoryEntity<TEntity>
+public class DatabaseUnitOfWorkTransaction
 {
-  public DatabaseUnitOfWorkTransaction(TEntity? entity, DatabaseContextRecordState state)
+  public SqlCommand SqlCommand { get; }
+  public DatabaseTransactionState state { get; private set; }
+
+  public DatabaseUnitOfWorkTransaction(SqlCommand sqlCommand, DatabaseTransactionState state)
   {
-    this.entity = entity;
+    this.SqlCommand = sqlCommand;
     this.state = state;
   }
 
-  public TEntity? entity { get; }
-  public DatabaseContextRecordState state { get; }
+  public async Task execute()
+  {
+    this.state = DatabaseTransactionState.Executed;
+    try
+    {
+      await this.SqlCommand.ExecuteNonQueryAsync();
+      this.state = DatabaseTransactionState.Succeed;
+    }
+    catch (Exception)
+    {
+      this.state = DatabaseTransactionState.Faild;
+      throw;
+    }
+  }
 }

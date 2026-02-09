@@ -1,9 +1,6 @@
-﻿using Hamfer.Repository.Entity;
+﻿namespace Hamfer.Repository.Duow;
 
-namespace Hamfer.Repository.Duow;
-
-public class DatabaseUnitOfWorkQeue<TEntity> : Queue<DatabaseUnitOfWorkTransaction<TEntity>>
-  where TEntity : class, IRepositoryEntity<TEntity>
+public class DatabaseUnitOfWorkQeue : Queue<DatabaseUnitOfWorkTransaction>
 {
   public DatabaseUnitOfWorkQeue()
   {

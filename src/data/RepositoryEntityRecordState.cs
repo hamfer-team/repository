@@ -1,6 +1,6 @@
 ﻿namespace Hamfer.Repository.Data;
 
-public enum DatabaseContextRecordState
+public enum RepositoryEntityRecordState
 {
   Unknown = -1,
   Unchanged = 0,

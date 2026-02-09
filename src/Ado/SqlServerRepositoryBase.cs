@@ -8,9 +8,9 @@ namespace Hamfer.Repository.Ado;
 public abstract class SqlServerRepositoryBase<TEntity>
   where TEntity : class, IRepositoryEntity<TEntity>
 {
-  protected SqlServerDatabaseUnitOfWorkBase<TEntity> databaseContext { get; private set; }
+  protected SqlServerRepositoryEntityUnitOfWorkBase<TEntity> databaseContext { get; private set; }
 
-  protected SqlServerRepositoryBase(SqlServerDatabaseUnitOfWorkBase<TEntity> databaseContext)
+  protected SqlServerRepositoryBase(SqlServerRepositoryEntityUnitOfWorkBase<TEntity> databaseContext)
   {
     this.databaseContext = databaseContext;
   }
