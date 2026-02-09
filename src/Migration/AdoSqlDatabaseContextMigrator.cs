@@ -213,7 +213,7 @@ namespace Hamfer.Repository.Migration
             removeOldDb = true;
           }
 
-          if (arg == "generat-only" || arg == "generateOnly" || nextArg == "generat-only" || nextArg == "generateOnly")
+          if (arg == "generate-only" || arg == "generateOnly" || nextArg == "generate-only" || nextArg == "generateOnly")
           {
             generateOnly = true;
           }
