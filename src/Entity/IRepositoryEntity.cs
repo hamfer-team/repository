@@ -8,7 +8,6 @@ namespace Hamfer.Repository.Entity;
 /// </summary>
 public interface IRepositoryEntity
 {
-  [RepositoryColumn(SqlColumnParam.Is_Not_Nullable)]
   Guid id { get; set; }
 }
 
