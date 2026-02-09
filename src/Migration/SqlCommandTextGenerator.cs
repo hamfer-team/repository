@@ -36,7 +36,7 @@ public sealed class SqlCommandTextGenerator
       SqlColumnInfo? dbci = tableExists ? dbti?.columns?.SingleOrDefault(w => IsSame(column, w.name)) : null;
       if (sci.defaultValue != null)
       {
-        columnString += $"CONSTRAINT {DbKeyForDefaultValue(schema, table, column)} DEFAULT ${sci.defaultValueText}";
+        columnString += $" CONSTRAINT {DbKeyForDefaultValue(schema, table, column)} DEFAULT {sci.defaultValueText}";
       }
 
       // Column description Creation or updating is same
@@ -130,8 +130,7 @@ public sealed class SqlCommandTextGenerator
         foreach (KeyValuePair<string, string[]> unique in sti.uniqueConstraints)
         {
           string uniquesString = unique.Value.Select(u => $"[{RemoveEscapeCharacters(u)}]").Aggregate((a, b) => $"{a}, {b}");
-          string key = unique.Key != "" ? $"_{unique.Key}" : "";
-          uniqueConstraintString = $",{nl}\tCONSTRAINT {DbKeyForUnique(schema, table, key)} UNIQUE NONCLUSTERED ({uniquesString})";
+          uniqueConstraintString = $",{nl}\tCONSTRAINT {DbKeyForUnique(schema, table, unique.Key)} UNIQUE NONCLUSTERED ({uniquesString})";
         }
       }
 

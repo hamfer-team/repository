@@ -55,21 +55,21 @@ public class SqlColumnInfoBuilder
     return this;
   }
 
-  public SqlColumnInfoBuilder isString(bool supprtsUnicode = true, bool variableLength = true, int storageSize = 30)
+  public SqlColumnInfoBuilder isString(bool? supprtsUnicode, bool? fixedLength, int? storageSize)
   {
-    if (storageSize < 1)
+    if (storageSize == null || storageSize < 1)
     {
       throw new RepositorySqlColumnBuilderError(this.name, $"حداقل طول فیلد متنی {this.name} باید یک حرف باشد!");
     }
 
-    if (supprtsUnicode)
+    if (supprtsUnicode ?? false)
     {
       if (storageSize > 4000)
       {
         throw new RepositorySqlColumnBuilderError(this.name, $"حداکثر فضای ذخیره‌سازی فیلد متنی {this.name} می‌تواند 4000 بایت باشد!");
       }
 
-      this.dbType = variableLength ? SqlDbType.NVarChar : SqlDbType.NChar;
+      this.dbType = fixedLength != null && fixedLength.Value ? SqlDbType.NChar : SqlDbType.NVarChar;
       this.charMaxLength = storageSize;
     }
     else
@@ -79,7 +79,7 @@ public class SqlColumnInfoBuilder
         throw new RepositorySqlColumnBuilderError(name, $"حداکثر فضای ذخیره‌سازی فیلد متنی {name} می تواند 8000 بایت باشد!");
       }
 
-      this.dbType = variableLength ? SqlDbType.VarChar : SqlDbType.Char;
+      this.dbType = fixedLength != null && fixedLength.Value ? SqlDbType.Char : SqlDbType.VarChar;
       this.charMaxLength = storageSize;
     }
 
@@ -88,14 +88,14 @@ public class SqlColumnInfoBuilder
     return this;
   }
 
-  public SqlColumnInfoBuilder isBinary(bool variableLength = true, int storageSize = 30)
+  public SqlColumnInfoBuilder isBinary(bool? fixedLength, int? storageSize)
   {
-    if (storageSize < 1 || storageSize > 8000)
+    if (storageSize == null || storageSize < 1 || storageSize > 8000)
     {
       throw new RepositorySqlColumnBuilderError(name, $"مقدار فضای ذخیره‌سازی فیلد {name} باید بین 1 تا 8000 بایت باشد!");
     }
 
-    this.dbType = variableLength ? SqlDbType.VarBinary : SqlDbType.Binary;
+    this.dbType = fixedLength != null && fixedLength.Value ? SqlDbType.Binary : SqlDbType.VarBinary;
     this.charMaxLength = storageSize; // TODO: 2x
 
     this.sqlDbTypeText = $"[{this.dbType?.ToString().ToLowerInvariant()}]({storageSize})";
@@ -181,9 +181,9 @@ public class SqlColumnInfoBuilder
     return this;
   }
 
-  public SqlColumnInfoBuilder isUid(bool automaticGeneration = false)
+  public SqlColumnInfoBuilder isUid(bool? automaticGeneration)
   {
-    this.dbType = automaticGeneration ? SqlDbType.Timestamp : SqlDbType.UniqueIdentifier;
+    this.dbType = automaticGeneration != null && automaticGeneration.Value ? SqlDbType.Timestamp : SqlDbType.UniqueIdentifier;
     this.defaultValueText = SqlCommandTextHelper.getValueText(this.defaultValue, this.dbType!.Value);
     return this;
   }
@@ -366,6 +366,12 @@ public class SqlColumnInfoBuilder
     {
       // Console.Write($"{underlyingType.Name} ");
       type = underlyingType;
+    }
+
+    if (type.IsEnum)
+    {
+      type = Enum.GetUnderlyingType(type);
+      // Console.Write($"Enum UnderlyingType: {type} ");
     }
 
     Dictionary<string, MidDataType> typePairs = new() { 

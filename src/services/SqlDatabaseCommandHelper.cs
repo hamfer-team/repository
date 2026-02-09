@@ -93,6 +93,7 @@ public static class SqlDatabaseCommandHelper
       bool? isMoney = null;
       bool? isSmallMoney = null;
       bool? maxSize = null;
+      bool? isIdentity = null;
       int? identitySeed = null;
       int? identityIncrement = null;
 
@@ -101,6 +102,7 @@ public static class SqlDatabaseCommandHelper
       string? uniqueGroup = null;
       bool? isNullable = null;
       bool? isNotNullable = null;
+      string? defaultValue = null;
       string? colDesc = null;
 
       IEnumerable<RepositoryColumnAttribute>? patts = prop.GetCustomAttributes<RepositoryColumnAttribute>(true);
@@ -150,9 +152,11 @@ public static class SqlDatabaseCommandHelper
             break;
           case SqlColumnParam.Is_Identity_With_Seed_int:
             _ = ValueTypeHelper.TryParse(patt.value, out identitySeed);
+            isIdentity = identitySeed != null;
             break;
           case SqlColumnParam.Is_Identity_With_Increment_int:
             _ = ValueTypeHelper.TryParse(patt.value, out identityIncrement);
+            isIdentity = identityIncrement != null;
             break;
           case SqlColumnParam.Is_PrimaryKey:
             _ = ValueTypeHelper.TryParse(patt.value, out isPrimaryKey);
@@ -174,7 +178,7 @@ public static class SqlDatabaseCommandHelper
             ignored ??= true;
             break;
           case SqlColumnParam.With_DefaultValue_string:
-            _ = ValueTypeHelper.TryParse(patt.value, out dynamic? defaultValue);
+            _ = ValueTypeHelper.TryParse(patt.value, out defaultValue);
             break;
           case SqlColumnParam.Set_Name:
             _ = ValueTypeHelper.TryParse(patt.value, out colName);
@@ -202,7 +206,7 @@ public static class SqlDatabaseCommandHelper
       SqlColumnInfoBuilder cibuilder = new(columnName);
       if (SqlColumnInfoBuilder.TypeHelper(ptype, out MidDataType? midType))
       {
-        var isIdentitySuit = false;
+        bool isIdentitySuit = false;
 
         switch (midType)
         {
@@ -212,7 +216,7 @@ public static class SqlDatabaseCommandHelper
             isIdentitySuit = true;
             break;
           case MidDataType.Binary:
-            cibuilder.isBinary(fixedLength ?? true, storageSize ?? 30);
+            cibuilder.isBinary(fixedLength, (maxSize ?? false) ? 4000 : storageSize);
             cibuilder.isNullable();
             break;
           case MidDataType.Bit:
@@ -223,7 +227,7 @@ public static class SqlDatabaseCommandHelper
             cibuilder.isDate();
             if (!(dateOnly ?? false))
             {
-              cibuilder.withTime(fractionalSecondScale ?? 3);
+              cibuilder.withTime(fractionalSecondScale ?? 0);
             }
             cibuilder.isNotNullable();
             break;
@@ -263,11 +267,11 @@ public static class SqlDatabaseCommandHelper
             isIdentitySuit = true;
             break;
           case MidDataType.String:
-            cibuilder.isString(supprtsUnicode ?? true, fixedLength ?? true, storageSize ?? 30);
+            cibuilder.isString(supprtsUnicode, fixedLength, (maxSize ?? false) ? 4000 : storageSize);
             cibuilder.isNullable();
             break;
           case MidDataType.Char:
-            cibuilder.isString(supprtsUnicode ?? true, false, 1);
+            cibuilder.isString(supprtsUnicode, false, 1);
             cibuilder.isNotNullable();
             break;
           case MidDataType.Time:
@@ -279,12 +283,7 @@ public static class SqlDatabaseCommandHelper
             cibuilder.isNotNullable();
             break;
           case MidDataType.Uid:
-            cibuilder.isUid(automaticGeneration ?? false);
-            if (automaticGeneration ?? false) {
-              cibuilder.isNotNullable();
-            } else {
-              cibuilder.isNullable();
-            }
+            cibuilder.isUid(automaticGeneration);
             break;
           default:
             break;
@@ -308,7 +307,7 @@ public static class SqlDatabaseCommandHelper
         }
 
         // Applying IDENTITY only on suit types
-        if (isIdentitySuit)
+        if (isIdentity != null && isIdentity.Value && isIdentitySuit)
         {
           cibuilder.withIdentity(identitySeed ?? 1, identityIncrement ?? 1);
         }
@@ -323,7 +322,7 @@ public static class SqlDatabaseCommandHelper
       {
         cibuilder.isNullable();
       }
-      if (isNotNullable ?? false)
+      if ((isNotNullable ?? false) || (automaticGeneration ?? false))
       {
         cibuilder.isNotNullable();
       }
@@ -350,6 +349,11 @@ public static class SqlDatabaseCommandHelper
         {
           uniques.Add(uniqueGroup, [columnName]);
         }
+      }
+
+      if (defaultValue != null)
+      {
+        cibuilder.withDefaultValue(defaultValue);
       }
 
       cibuilder.withDescription(colDesc);
