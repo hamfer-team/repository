@@ -1,5 +1,6 @@
 using Hamfer.Repository.Entity;
 using Hamfer.Repository.Models;
+using Hamfer.Repository.Services;
 using Hamfer.Verification.Errors;
 using Microsoft.Data.SqlClient;
 using static Hamfer.Repository.Utils.SqlCommandTools;
@@ -153,10 +154,49 @@ internal sealed class SqlCommandTextGenerator
 
   internal static SqlCommand[]? GenerateSeedCommandFor(IEnumerable<IRepositoryEntity> seedEntities)
   {
-    Console.WriteLine($"🧡 ");
+    string nl = Environment.NewLine;
 
-    return null;
-    // throw new NotImplementedException();
+    Dictionary<string, (SqlCommand sqlCommand, string columns)?> commandGroups = new();
+    foreach (IRepositoryEntity entity in seedEntities)
+    {
+      Type dataModel = entity.GetType();
+      RepositorySqlCommandHelper rsch = new(dataModel);
+      string group = dataModel.Name;
+      string postfix = "_" + entity.id.ToString().Replace("-","");
+
+      if (commandGroups.TryGetValue(group, out (SqlCommand sqlCommand, string columns)? sqlCommandInfo))
+      {
+        commandGroups.Remove(group);
+        string columns = sqlCommandInfo!.Value.columns;
+        string values = rsch.generateValuePatternInsert(columns, postfix);
+        SqlCommand sqlCommand = sqlCommandInfo!.Value.sqlCommand;
+        sqlCommand.CommandText = sqlCommandInfo!.Value.sqlCommand.CommandText + $",{nl}\t\t({values})";
+        sqlCommand = rsch.applyFieldParameters(sqlCommand, entity, postfix);
+
+        sqlCommandInfo = (sqlCommand, columns);
+      }
+      else
+      {
+        (string? schema, string? table) = RepositoryEntityHelper.GetSchemaAndTable(dataModel, true);
+        string columns = rsch.generateFieldPatternInsert();
+        string values = rsch.generateValuePatternInsert(columns, postfix);
+        string commandText = $"MERGE [{schema}].[{table}] AS tgt USING ({nl}\tVALUES{nl}\t\t({values})";
+        SqlCommand sqlCommand = rsch.applyFieldParameters(new SqlCommand(commandText), entity, postfix);
+
+        sqlCommandInfo = (sqlCommand, columns);
+      }
+
+      commandGroups.Add(group, sqlCommandInfo);
+    }
+
+    SqlCommand[] result = [.. commandGroups. Where(kvp => kvp.Value.HasValue).Select(kvp => {
+      string columns = kvp.Value!.Value.columns;
+      SqlCommand sc = kvp.Value!.Value.sqlCommand;
+      sc.CommandText += $"{nl}\t) AS src({columns}) ON (tgt.id = src.id){nl}WHEN NOT MATCHED BY TARGET THEN{nl}\tINSERT ({columns}) VALUES({columns});";
+      return sc;
+    })];
+
+    return result;
   }
 
   private static void VerifyTableInfo(SqlTableInfo sti, string? name = null)
