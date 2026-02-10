@@ -25,6 +25,11 @@ public abstract class SqlServerDatabaseUnitOfWorkBase: DatabaseUnitOfWorkBase
 
   protected override async Task writeToDatabase(DatabaseUnitOfWorkQeue transactions)
   {
+    if (this.connection.State != ConnectionState.Open)
+    {
+      await this.connection.OpenAsync();
+    }
+
     this.sqlTransaction = connection.BeginTransaction(IsolationLevel.Serializable, "UnitOfworkTransaction");
 
     try
@@ -33,9 +38,8 @@ public abstract class SqlServerDatabaseUnitOfWorkBase: DatabaseUnitOfWorkBase
       for (int i = 0; i < count; i++)
       {
         DatabaseUnitOfWorkTransaction transaction = transactions.Dequeue();
-
-        SqlCommand command = transaction.SqlCommand;
-        command.Transaction = this.sqlTransaction;
+        transaction.SqlCommand.Connection = this.connection;
+        transaction.SqlCommand.Transaction = this.sqlTransaction;
 
         await transaction.execute();
       }
