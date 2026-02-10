@@ -3,6 +3,7 @@ using System.Text;
 using Hamfer.Kernel.Errors;
 using Hamfer.Kernel.Utils;
 using Hamfer.Repository.Entity;
+using Hamfer.Repository.Utils;
 using Microsoft.Data.SqlClient;
 
 namespace Hamfer.Repository.Services;
@@ -25,7 +26,7 @@ public class RepositorySqlCommandHelper
   /// For INSERT string
   /// </summary>
   /// <returns></returns>
-  public string generateFieldValuesPattern()
+  public string generateFieldPatternInsert()
   {
     StringBuilder sb = new();
 
@@ -35,14 +36,20 @@ public class RepositorySqlCommandHelper
       if (prop.CanWrite)
       {
         sb.Append('[')
-          .Append(prop.Name)
+          .Append(SqlCommandTools.RemoveEscapeCharacters(prop.Name))
           .Append("], ");
       }
     }
 
-    sb.Append(';')
-      .Replace(", ;", "");
+    sb.Append(';').Replace(", ;", "");
     return sb.ToString();
+  }
+
+  public string generateValuePatternInsert(string? columns = null, string? paramPostfix = null)
+  {
+    columns ??= this.generateFieldPatternInsert();
+    string values = columns.ToLowerInvariant().Replace("]", paramPostfix ?? "").Replace('[', '@');
+    return values;
   }
 
   /// <summary>
@@ -50,7 +57,7 @@ public class RepositorySqlCommandHelper
   /// </summary>
   /// <param name="exceptions"></param>
   /// <returns></returns>
-  public string generateFieldAndValuesPattern(List<string>? exceptions = null)
+  public string generateFieldValuePatternUpdate(List<string>? exceptions = null)
   {
     StringBuilder sb = new();
 
@@ -61,32 +68,35 @@ public class RepositorySqlCommandHelper
         continue;
       }
 
+      string propName = SqlCommandTools.RemoveEscapeCharacters(prop.Name);
       // We don't use a readonly property ;)
       if (prop.CanWrite)
       {
-        sb.Append($"[{prop.Name}]")
+        sb.Append($"[{propName}]")
           .Append('=')
-          .Append($"@{prop.Name.ToLower()}, ");
+          .Append($"@{propName.ToLowerInvariant()}, ");
       }
     }
 
-    sb.Append(';')
-      .Replace(", ;", "");
+    sb.Append(';').Replace(", ;", "");
     return sb.ToString();
   }
 
-  public void applyFieldParameters<TEntity>(SqlCommand command, TEntity? entity)
-    where TEntity : class, IRepositoryEntity<TEntity>
+  public SqlCommand applyFieldParameters<TEntity>(SqlCommand command, TEntity? entity, string? paramPostfix = null)
+    where TEntity : class, IRepositoryEntity
   {
     foreach (PropertyInfo prop in properties)
     {
-      string name = prop.Name.ToLower();
+      string name = $"@{prop.Name.ToLowerInvariant()}{paramPostfix ?? ""}";
       object? value = prop.GetValue(entity, null) ?? DBNull.Value;
 
       command.Parameters.AddWithValue(name, value);
+      // Console.WriteLine($"🖤 {name}: {value}");
     }
+    return command;
   }
-  }
+  
+}
 
 public class RepositorySqlCommandHelper<TEntity> : RepositorySqlCommandHelper
   where TEntity : class, IRepositoryEntity<TEntity>

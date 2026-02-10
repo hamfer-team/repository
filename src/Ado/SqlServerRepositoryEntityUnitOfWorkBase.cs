@@ -160,9 +160,8 @@ where TEntity : class, IRepositoryEntity<TEntity>
   // C: Create
   private async Task callCreateCommandBy(TEntity? entity, SqlCommand command)
   {
-    // TODO
-    var fields = commandHelper.generateFieldValuesPattern();
-    var values = fields.Replace("]", "").Replace('[', '@');
+    string fields = commandHelper.generateFieldPatternInsert();
+    string values = commandHelper.generateValuePatternInsert(fields);
     command.CommandText = $"INSERT INTO [{base.schemaName}].[{base.tableName}] ({fields}) VALUES ({values.ToLower()});";
 
     commandHelper.applyFieldParameters(command, entity);
@@ -194,8 +193,7 @@ where TEntity : class, IRepositoryEntity<TEntity>
   // U: Update
   private async Task callUpdateCommandBy(TEntity? entity, SqlCommand command)
   {
-    // TODO
-    var fieldAndValuesPattern = commandHelper.generateFieldAndValuesPattern([nameof(IRepositoryEntity<>.id)]);
+    string fieldAndValuesPattern = commandHelper.generateFieldValuePatternUpdate([nameof(IRepositoryEntity<>.id)]);
     command.CommandText = $"UPDATE [{base.schemaName}].[{base.tableName}] SET {fieldAndValuesPattern} WHERE Id=@id;";
     
     commandHelper.applyFieldParameters(command, entity);
@@ -206,7 +204,6 @@ where TEntity : class, IRepositoryEntity<TEntity>
   // D: Delete
   private async Task callDeleteCommandBy(TEntity? entity, SqlCommand command)
   {
-    // TODO
     command.CommandText = $"DELETE FROM [{base.schemaName}].[{base.tableName}] WHERE Id=@id;";
     command.Parameters.AddWithValue("@id", entity?.id);
 
