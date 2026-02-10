@@ -49,6 +49,7 @@ public abstract class DatabaseUnitOfWorkBase : IDatabaseUnitOfWork
     foreach (SqlCommand sqlCommand in sqlCommands)
     {
       this.addToQueue(sqlCommand);
+      // Console.WriteLine($"🧡 Transaction[{this.transactionsQueue.Count}]: {sqlCommand.CommandText}");
     }
   }
 }

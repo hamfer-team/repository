@@ -19,6 +19,9 @@ public class DatabaseUnitOfWorkTransaction
     this.state = DatabaseTransactionState.Executed;
     try
     {
+      // Console.WriteLine($"🤎 {this.SqlCommand.CommandText}");
+      // for (int i = 0; i < this.SqlCommand.Parameters.Count; i++) { Console.WriteLine($"🤎 {this.SqlCommand.Parameters[i]}: {this.SqlCommand.Parameters[i].SqlValue}"); }
+
       await this.SqlCommand.ExecuteNonQueryAsync();
       this.state = DatabaseTransactionState.Succeed;
     }
