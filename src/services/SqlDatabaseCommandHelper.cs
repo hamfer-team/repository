@@ -56,10 +56,6 @@ public static class SqlDatabaseCommandHelper
       }
     }
 
-    tableName = RemoveEscapeCharacters(tableName ?? type.Name);
-    Match? match = new Regex(@"^(?<name>.+?)(Model|DataModel|Entity|EntityModel|Table|TableModel)$", RegexOptions.IgnoreCase).Match(tableName);
-    tableName = match != null && match.Success ? match.Groups["name"].ToString() : tableName;
-    
     if (tableUniqueCsv != null)
     {
       uniques ??= [];
@@ -369,8 +365,8 @@ public static class SqlDatabaseCommandHelper
 
     SqlTableInfo result = new()
     {
-        schema = RemoveEscapeCharacters(schema ?? "dbo"),
-        name = RemoveEscapeCharacters(tableName ?? type.Name),
+        schema = RemoveEscapeCharacters(schema ?? RepositoryEntityHelper.DEFAULT_SCHEMA),
+        name = RemoveEscapeCharacters(tableName ?? RemovedDataModelPostfix(type.Name)),
         columns = columns,
         primaryKeys = primaryKeys?.ToArray(),
         description = description,

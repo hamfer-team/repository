@@ -18,4 +18,10 @@ public static class SqlCommandTools
   public static string DbKeyForPrimaryKey(string schema, string table) => $"[PK_{schema}_{table}]";
   
   public static string DbKeyForUnique(string schema, string table, string key) => $"[IX_{schema}_{table}{(key == "" ? "" : "_" + key)}]";
+
+  public static string RemovedDataModelPostfix(string typeName)
+  {
+    Match? match = new Regex(@"^(?<name>.+?)(Model|DataModel|Entity|EntityModel|Table|TableModel)$", RegexOptions.IgnoreCase).Match(typeName);
+    return match != null && match.Success ? match.Groups["name"].ToString() : typeName;
+  }
 }
