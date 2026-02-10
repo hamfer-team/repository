@@ -41,7 +41,7 @@ public static class RepositoryEntityHelper
     return (schema, table);
   }
 
-  public static (string? schema, string? table) GetSchemaAndTable<TEntity>()
+  public static (string? schema, string? table) GetSchemaAndTable<TEntity>(bool handleNullAttributes = false)
     where TEntity : class, IRepositoryEntity<TEntity>
-    => GetSchemaAndTable(typeof(TEntity));
+    => GetSchemaAndTable(typeof(TEntity), handleNullAttributes);
 }

@@ -26,9 +26,10 @@ public abstract class RepositoryEntityUnitOfWorkBase<TEntity> : IRepositoryEntit
     this.databaseName = this.connection.Database;
     this.readWrapper = readWrapper;
 
-    var (schema, table) = RepositoryEntityHelper.GetSchemaAndTable<TEntity>();
-    this.schemaName = schema ?? "dbo";
-    this.tableName = table ?? typeof(TEntity).Name;
+    (string? schema, string? table) = RepositoryEntityHelper.GetSchemaAndTable<TEntity>(true);
+    this.schemaName = schema!;
+    this.tableName = table!;
+    // Console.WriteLine($"💛 {this.schemaName}.{this.tableName}");
 
     this. currentRecordsetStates = new Dictionary<Guid, RepositoryEntityRecordState>();
     this.transactionsQueue = new RepositoryEntityUnitOfWorkQeue<TEntity>();

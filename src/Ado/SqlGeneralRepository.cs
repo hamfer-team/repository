@@ -58,7 +58,7 @@ public class SqlGeneralRepository
     return true;
   }
 
-  public IEnumerable<TResult> query<TResult>(SqlQueryBase<TResult> sqlQuery, params object[]? inputParams)
+  public IEnumerable<TResult> query<TResult>(SqlQueryBase<TResult> sqlQuery, params dynamic[]? inputParams)
   {
     if (connection.State != System.Data.ConnectionState.Open)
     {
@@ -66,22 +66,24 @@ public class SqlGeneralRepository
     }
 
     SqlCommand sqlCommand = new(sqlQuery.query, connection);
+    // Console.WriteLine($"🧡 {sqlCommand.CommandText}");
+
     if (inputParams != null) {
       for (int i = 0; i < inputParams.Length; i++)
       {
-        object inp = inputParams[i];
+        dynamic inp = inputParams[i];
         sqlCommand.Parameters.AddWithValue($"@P{i + 1}", inp);
       }
     }
 
-    var result = new List<TResult>();
-    using var reader = sqlCommand.ExecuteReader();
+    List<TResult> result = [];
+    using SqlDataReader reader = sqlCommand.ExecuteReader();
 
     if (reader.HasRows)
     {
       while (reader.Read())
       {
-        var record = sqlQuery.readWrapper(reader);
+        TResult? record = sqlQuery.readWrapper(reader);
         result.Add(record);
       }
     }

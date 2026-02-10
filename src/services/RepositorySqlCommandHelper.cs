@@ -1,7 +1,5 @@
 ﻿using System.Reflection;
 using System.Text;
-using Hamfer.Kernel.Errors;
-using Hamfer.Kernel.Utils;
 using Hamfer.Repository.Entity;
 using Hamfer.Repository.Utils;
 using Microsoft.Data.SqlClient;
@@ -14,11 +12,6 @@ public class RepositorySqlCommandHelper
 
   public RepositorySqlCommandHelper(Type entityType)
   {
-    if (!ReferenceTypeHelper.IsDerivedOfGenericInterface(entityType, typeof(IRepositoryEntity<>)))
-    {
-      throw new RepositoryError("The `entityType` must implements `IRepositoryEntity<entityType>`.");
-    }
-
     this.properties = entityType.GetProperties();
   }
 
@@ -87,7 +80,7 @@ public class RepositorySqlCommandHelper
   {
     foreach (PropertyInfo prop in properties)
     {
-      string name = $"@{prop.Name.ToLowerInvariant()}{paramPostfix ?? ""}";
+      string name = SqlCommandTools.PrepareParamName(prop.Name, paramPostfix);
       object? value = prop.GetValue(entity, null) ?? DBNull.Value;
 
       command.Parameters.AddWithValue(name, value);
@@ -95,7 +88,6 @@ public class RepositorySqlCommandHelper
     }
     return command;
   }
-  
 }
 
 public class RepositorySqlCommandHelper<TEntity> : RepositorySqlCommandHelper
