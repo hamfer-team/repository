@@ -27,7 +27,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\kernel\src\kernel.csproj" />
-    <ProjectReference Include="..\..\letsVeirfy\src\letsVeirfy.csproj" />
+    <ProjectReference Include="..\..\letsVerify\src\letsVeirfy.csproj" />
   </ItemGroup>
 
   <ItemGroup>
