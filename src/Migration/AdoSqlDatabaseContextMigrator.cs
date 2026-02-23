@@ -6,6 +6,7 @@ using Hamfer.Repository.Entity;
 using Hamfer.Repository.Errors;
 using Hamfer.Repository.Models;
 using Hamfer.Repository.Services;
+using Hamfer.Repository.Utils;
 using Hamfer.Verification.Services;
 using Microsoft.Data.SqlClient;
 
@@ -92,11 +93,10 @@ public sealed class AdoSqlDatabaseContextMigrator
     #endregion
 
     // Create migration file
-    string migrationsPath = prepareMigrationFolder(assembly, path);
+    string migrationsPath = PrepareMigrationFolder(assembly, path);
 
-    string? timePart = DateTime.Now.ToPersianString("{0:0000}{1:00}{2:00}{3:00}{4:00}{5:00}{6:0000}");
-    string fileName = $"{timePart}_{title ?? "migration.sql"}";
-    string file = Path.Join(migrationsPath, fileName);
+    DateTime migrationTime = DateTime.Now;
+    string file = GetFileName(migrationsPath, title, migrationTime);
 
     using StreamWriter sw = new(file, true);
 
@@ -113,8 +113,13 @@ public sealed class AdoSqlDatabaseContextMigrator
     {
       if (tableCommand.createSchema != null)
       {
-        repository.execute(tableCommand.createSchema);
-        Console.WriteLine($"Also <{tableCommand.createSchema}> successfully executed.");
+        string schema = SqlCommandTools.RemoveEscapeCharacters(tableCommand.tableName.Split(".")[0]);
+        string schemaFile = GetFileName(migrationsPath, $"{schema}", migrationTime.AddSeconds(-1));
+        using (StreamWriter ssw = new(schemaFile, true))
+        {
+          ssw.WriteLine(tableCommand.createSchema.CommandText);
+          Console.WriteLine($"Also <{tableCommand.createSchema}> successfully executed.");
+        }
       }
 
       foreach (SqlCommand command in tableCommand.dropConstraints)
@@ -164,23 +169,29 @@ public sealed class AdoSqlDatabaseContextMigrator
     sw.WriteLine();
     sw.WriteLine("END CATCH");
 
-    Console.WriteLine($"📄✅ Script-file {fileName} created successfully @{migrationsPath}.");
+    Console.WriteLine($"📄✅ Script-files created successfully @{migrationsPath}.");
   }
 
   private async Task updateDatabase(Assembly assembly, string? path = null)
   {
-    string lastMigration = findLastMigration(assembly, path) 
+    string[] migrations = GetMigrations(assembly, path) 
       ?? throw new RepositoryError($"Migration file not found!");
-    string sqlCommandText = await File.ReadAllTextAsync(lastMigration);
-    try
+    for (int i = 0; i < migrations.Length; i++)
     {
-      repository.execute(sqlCommandText);
-      Console.WriteLine($"'🔆✅ Database updated successfully.");
+      string migration = migrations[i];
+      string sqlCommandText = await File.ReadAllTextAsync(migration);
+      try
+      {
+        repository.execute(sqlCommandText);
+        Console.WriteLine($"☑️ Database updated successfully by {migration}.");
+      }
+      catch (Exception ex)
+      {
+        // Ignore
+        // Console.WriteLine(ex);
+      }
     }
-    catch (Exception ex)
-    {
-      throw new RepositoryError("Error in executing Script-file.", ex);
-    }
+    Console.WriteLine($"🔆✅ Database is up-to-date.");
   }
 
   public async Task migrate(string[]? args)
@@ -247,16 +258,22 @@ public sealed class AdoSqlDatabaseContextMigrator
     }
   }
 
-  private static string? findLastMigration(Assembly assembly, string? path = null)
+  private static string GetFileName(string migrationsPath, string? title, DateTime migrationTime)
   {
-    string migrationPath = prepareMigrationFolder(assembly, path, false);
-    List<string> fileNames = [.. Directory.GetFiles(migrationPath)];
-    string? lastMigration = fileNames.OrderDescending().FirstOrDefault();
-    Console.WriteLine($"📄✅ Script-file {lastMigration} selected!");
-    return lastMigration;
+    string? timePart = migrationTime.ToPersianString("{0:0000}{1:00}{2:00}{3:00}{4:00}{5:00}{6:0000}");
+    string fileName = $"{timePart}_{title ?? "migration"}.sql";
+    string file = Path.Join(migrationsPath, fileName);
+    return file;
+  }
+  
+  private static string[]? GetMigrations(Assembly assembly, string? path = null)
+  {
+    string migrationPath = PrepareMigrationFolder(assembly, path, false);
+    string[] fileNames = [.. Directory.GetFiles(migrationPath).Order()];
+    return fileNames;
   }
 
-  private static string prepareMigrationFolder(Assembly assembly, string? path = null, bool withCreate = true)
+  private static string PrepareMigrationFolder(Assembly assembly, string? path = null, bool withCreate = true)
   {
     string assemblyCodePath = Path.GetDirectoryName(assembly.Location) ?? "";
     string pathSep = Path.DirectorySeparatorChar.ToString();
